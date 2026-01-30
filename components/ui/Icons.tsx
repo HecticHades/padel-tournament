@@ -13,6 +13,7 @@ export function WarningIcon({ className }: IconProps) {
       strokeWidth={1.5}
       stroke="currentColor"
       className={className}
+      aria-hidden="true"
     >
       <path
         strokeLinecap="round"
@@ -32,6 +33,7 @@ export function TrashIcon({ className }: IconProps) {
       strokeWidth={1.5}
       stroke="currentColor"
       className={className}
+      aria-hidden="true"
     >
       <path
         strokeLinecap="round"
@@ -51,6 +53,7 @@ export function DownloadIcon({ className }: IconProps) {
       strokeWidth={1.5}
       stroke="currentColor"
       className={className}
+      aria-hidden="true"
     >
       <path
         strokeLinecap="round"
@@ -70,6 +73,7 @@ export function ChevronLeftIcon({ className }: IconProps) {
       strokeWidth={1.5}
       stroke="currentColor"
       className={className}
+      aria-hidden="true"
     >
       <path
         strokeLinecap="round"
@@ -89,6 +93,7 @@ export function PlusIcon({ className }: IconProps) {
       strokeWidth={1.5}
       stroke="currentColor"
       className={className}
+      aria-hidden="true"
     >
       <path
         strokeLinecap="round"

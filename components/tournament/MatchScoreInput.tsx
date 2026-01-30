@@ -136,11 +136,10 @@ export function MatchScoreInput({
             <div className="w-24">
               <NumberInput
                 value={score2}
-                onChange={() => {}} // Read-only, auto-calculated
+                readOnly
                 min={0}
                 max={pointsPerMatch}
-                disabled={true}
-                aria-label={`Punkte ${labels.team} 2`}
+                aria-label={`Punkte ${labels.team} 2 (automatisch berechnet)`}
               />
             </div>
           </div>

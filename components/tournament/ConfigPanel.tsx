@@ -59,7 +59,7 @@ export function ConfigPanel({
                 key={points}
                 onClick={() => handlePointsChange(points)}
                 disabled={disabled}
-                className={`py-2 px-3 rounded-lg border-2 transition-colors font-medium ${
+                className={`py-2 px-3 rounded-lg border-2 transition-colors font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 ${
                   settings.pointsPerMatch === points
                     ? 'border-primary-500 bg-primary-50 text-primary-700 dark:bg-primary-900 dark:text-primary-300'
                     : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 text-slate-700 dark:text-slate-300'
@@ -73,13 +73,15 @@ export function ConfigPanel({
               <span className="text-sm text-slate-500 dark:text-slate-400">oder:</span>
               <input
                 type="number"
+                inputMode="numeric"
                 min="1"
                 max="99"
                 value={isCustomPoints ? settings.pointsPerMatch : ''}
-                placeholder="..."
+                placeholder="…"
                 onChange={handleCustomPointsChange}
                 disabled={disabled}
-                className={`w-16 py-2 px-2 text-center rounded-lg border-2 font-medium transition-colors ${
+                aria-label="Benutzerdefinierte Punkte pro Spiel"
+                className={`w-16 py-2 px-2 text-center rounded-lg border-2 font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 ${
                   isCustomPoints
                     ? 'border-primary-500 bg-primary-50 text-primary-700 dark:bg-primary-900 dark:text-primary-300'
                     : 'border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300'
@@ -100,7 +102,7 @@ export function ConfigPanel({
                 key={courtNum}
                 onClick={() => handleCourtsChange(courtNum)}
                 disabled={disabled}
-                className={`flex-1 py-2 px-3 rounded-lg border-2 transition-colors font-medium ${
+                className={`flex-1 py-2 px-3 rounded-lg border-2 transition-colors font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 ${
                   settings.courts === courtNum
                     ? 'border-primary-500 bg-primary-50 text-primary-700 dark:bg-primary-900 dark:text-primary-300'
                     : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 text-slate-700 dark:text-slate-300'

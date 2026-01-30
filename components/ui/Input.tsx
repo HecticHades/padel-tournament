@@ -32,7 +32,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
             'bg-white dark:bg-slate-800',
             'text-slate-900 dark:text-slate-100',
             'placeholder-slate-400 dark:placeholder-slate-500',
-            'focus:outline-none focus:ring-2 focus:ring-offset-0',
+            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-0',
             error
               ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
               : 'border-slate-300 dark:border-slate-600 focus:ring-primary-500 focus:border-primary-500',
