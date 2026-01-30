@@ -1,14 +1,25 @@
 'use client';
 
+import type { AdjustmentMethod } from '@/lib/types';
+import { labels } from '@/lib/labels';
+
 interface AdjustmentToggleProps {
   enabled: boolean;
   onChange: (enabled: boolean) => void;
+  method: AdjustmentMethod;
+  onMethodChange: (method: AdjustmentMethod) => void;
   maxMatches?: number;
 }
 
-export function AdjustmentToggle({ enabled, onChange, maxMatches }: AdjustmentToggleProps) {
+export function AdjustmentToggle({
+  enabled,
+  onChange,
+  method,
+  onMethodChange,
+  maxMatches,
+}: AdjustmentToggleProps) {
   return (
-    <div className="space-y-2">
+    <div className="space-y-3">
       <label className="flex items-center gap-3 cursor-pointer">
         <div className="relative">
           <input
@@ -24,10 +35,40 @@ export function AdjustmentToggle({ enabled, onChange, maxMatches }: AdjustmentTo
           Punkte hochrechnen {maxMatches ? `(auf ${maxMatches} Spiele)` : ''}
         </span>
       </label>
+
       {enabled && (
-        <p className="text-xs text-slate-500 dark:text-slate-400 pl-14">
-          Spieler mit weniger Spielen werden basierend auf ihrem Durchschnitt auf {maxMatches || 'die maximale Spielanzahl'} Spiele hochgerechnet.
-        </p>
+        <div className="pl-14 space-y-2">
+          <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+            {labels.adjustmentMethod}:
+          </p>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => onMethodChange('average')}
+              className={`flex-1 px-3 py-2 text-xs rounded-lg border transition-colors ${
+                method === 'average'
+                  ? 'bg-primary-50 dark:bg-primary-900/30 border-primary-300 dark:border-primary-700 text-primary-700 dark:text-primary-300'
+                  : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-600'
+              }`}
+            >
+              <div className="font-medium">{labels.adjustmentAverage}</div>
+            </button>
+            <button
+              type="button"
+              onClick={() => onMethodChange('opponent-based')}
+              className={`flex-1 px-3 py-2 text-xs rounded-lg border transition-colors ${
+                method === 'opponent-based'
+                  ? 'bg-primary-50 dark:bg-primary-900/30 border-primary-300 dark:border-primary-700 text-primary-700 dark:text-primary-300'
+                  : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-600'
+              }`}
+            >
+              <div className="font-medium">{labels.adjustmentOpponentBased}</div>
+            </button>
+          </div>
+          <p className="text-xs text-slate-500 dark:text-slate-400">
+            {method === 'average' ? labels.adjustmentAverageDesc : labels.adjustmentOpponentBasedDesc}
+          </p>
+        </div>
       )}
     </div>
   );

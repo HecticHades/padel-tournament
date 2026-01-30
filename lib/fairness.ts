@@ -1,4 +1,4 @@
-import type { Standing, AdjustedStanding } from './types';
+import type { Standing, AdjustedStanding, Match } from './types';
 
 /**
  * Calculate adjusted standings that account for different number of matches played.
@@ -184,4 +184,152 @@ export function hasFewerMatches(
 
   const maxMatches = Math.max(...allStandings.map(s => s.matchesPlayed));
   return standing.matchesPlayed < maxMatches;
+}
+
+/**
+ * Calculate opponent-based adjusted standings.
+ * For players with fewer matches, estimate points for missing matches
+ * based on how other players performed against those opponents.
+ */
+export function calculateOpponentBasedAdjustment(
+  standings: Standing[],
+  matches: Match[],
+  pointsPerMatch: number
+): AdjustedStanding[] {
+  if (standings.length === 0) return [];
+
+  const maxMatches = Math.max(...standings.map(s => s.matchesPlayed));
+
+  if (maxMatches === 0) {
+    return standings.map(s => ({
+      ...s,
+      adjustedPoints: 0,
+      adjustedAverage: 0,
+    }));
+  }
+
+  const allSameMatches = standings.every(s => s.matchesPlayed === maxMatches);
+  if (allSameMatches) {
+    return standings.map(s => ({
+      ...s,
+      adjustedPoints: s.points,
+      adjustedAverage: s.average,
+    }));
+  }
+
+  // Build a map of which opponents each player has faced
+  const playerOpponents = new Map<string, Set<string>>();
+  // Build a map of points scored against each opponent by all players
+  const pointsAgainstOpponent = new Map<string, { total: number; count: number }>();
+
+  standings.forEach(s => playerOpponents.set(s.playerId, new Set()));
+
+  // Process completed matches
+  matches.filter(m => m.completed).forEach(match => {
+    const team1Players = match.team1;
+    const team2Players = match.team2;
+    const score1 = match.score1 || 0;
+    const score2 = match.score2 || 0;
+
+    // Each player in team1 faced each player in team2
+    team1Players.forEach(p1 => {
+      team2Players.forEach(p2 => {
+        // p1 faced p2
+        playerOpponents.get(p1)?.add(p2);
+        playerOpponents.get(p2)?.add(p1);
+
+        // Points scored by p1 against p2
+        const key1 = `${p1}_vs_${p2}`;
+        const existing1 = pointsAgainstOpponent.get(key1) || { total: 0, count: 0 };
+        pointsAgainstOpponent.set(key1, {
+          total: existing1.total + score1,
+          count: existing1.count + 1,
+        });
+
+        // Points scored by p2 against p1
+        const key2 = `${p2}_vs_${p1}`;
+        const existing2 = pointsAgainstOpponent.get(key2) || { total: 0, count: 0 };
+        pointsAgainstOpponent.set(key2, {
+          total: existing2.total + score2,
+          count: existing2.count + 1,
+        });
+      });
+    });
+  });
+
+  // Calculate average points others scored against each opponent
+  const avgPointsAgainst = new Map<string, number>();
+  standings.forEach(opponent => {
+    let totalPoints = 0;
+    let matchCount = 0;
+
+    standings.forEach(player => {
+      if (player.playerId === opponent.playerId) return;
+
+      const key = `${player.playerId}_vs_${opponent.playerId}`;
+      const data = pointsAgainstOpponent.get(key);
+      if (data && data.count > 0) {
+        totalPoints += data.total;
+        matchCount += data.count;
+      }
+    });
+
+    // Average points scored against this opponent
+    avgPointsAgainst.set(
+      opponent.playerId,
+      matchCount > 0 ? totalPoints / matchCount : pointsPerMatch / 2
+    );
+  });
+
+  // Calculate adjusted standings
+  return standings.map(standing => {
+    if (standing.matchesPlayed === 0) {
+      return {
+        ...standing,
+        adjustedPoints: 0,
+        adjustedAverage: 0,
+      };
+    }
+
+    if (standing.matchesPlayed >= maxMatches) {
+      return {
+        ...standing,
+        adjustedPoints: standing.points,
+        adjustedAverage: standing.average,
+      };
+    }
+
+    // Find opponents this player hasn't faced
+    const facedOpponents = playerOpponents.get(standing.playerId) || new Set();
+    let estimatedPoints = standing.points;
+    let estimatedMatchCount = 0;
+
+    standings.forEach(potentialOpponent => {
+      if (potentialOpponent.playerId === standing.playerId) return;
+      if (facedOpponents.has(potentialOpponent.playerId)) return;
+
+      // This player hasn't faced this opponent
+      // Estimate points based on average performance against this opponent
+      const avgAgainst = avgPointsAgainst.get(potentialOpponent.playerId) || pointsPerMatch / 2;
+      estimatedPoints += avgAgainst;
+      estimatedMatchCount++;
+    });
+
+    // Cap estimated matches to reach maxMatches
+    const missingMatches = maxMatches - standing.matchesPlayed;
+    if (estimatedMatchCount > missingMatches) {
+      // Scale down proportionally
+      const scaleFactor = missingMatches / estimatedMatchCount;
+      estimatedPoints = standing.points + (estimatedPoints - standing.points) * scaleFactor;
+    }
+
+    const totalMatches = Math.min(standing.matchesPlayed + estimatedMatchCount, maxMatches);
+    const adjustedAverage = totalMatches > 0 ? estimatedPoints / totalMatches : 0;
+
+    return {
+      ...standing,
+      adjustedPoints: Math.round(estimatedPoints * 10) / 10,
+      adjustedAverage: Math.round(adjustedAverage * 10) / 10,
+    };
+  });
 }

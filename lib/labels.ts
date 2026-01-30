@@ -98,6 +98,13 @@ export const labels = {
   exportJson: 'Daten exportieren',
   importJson: 'Daten importieren',
 
+  // Adjustment methods
+  adjustmentMethod: 'Berechnungsmethode',
+  adjustmentAverage: 'Durchschnitt',
+  adjustmentOpponentBased: 'Gegner-basiert',
+  adjustmentAverageDesc: 'Hochrechnung basierend auf dem eigenen Punkteschnitt.',
+  adjustmentOpponentBasedDesc: 'Schätzung basierend auf den Ergebnissen anderer gegen nicht-gespielte Gegner.',
+
   // Medals
   gold: 'Gold',
   silver: 'Silber',

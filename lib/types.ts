@@ -67,6 +67,8 @@ export interface AdjustedStanding extends Standing {
   adjustedAverage: number;
 }
 
+export type AdjustmentMethod = 'average' | 'opponent-based';
+
 // Storage keys
 export const STORAGE_KEYS = {
   TOURNAMENT: 'padel_tournament',

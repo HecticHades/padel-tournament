@@ -18,10 +18,12 @@ import { useAuth } from '@/hooks/useAuth';
 import { labels } from '@/lib/labels';
 import {
   calculateAdjustedStandings,
+  calculateOpponentBasedAdjustment,
   sortByAdjusted,
   calculateFairnessStats,
   getPlayersWithFewerMatches,
 } from '@/lib/fairness';
+import type { AdjustmentMethod } from '@/lib/types';
 
 function LeaderboardContent() {
   const router = useRouter();
@@ -42,6 +44,7 @@ function LeaderboardContent() {
 
   // Auto-enable adjusted view when tournament is completed and there are imbalanced matches
   const [showAdjusted, setShowAdjusted] = useState(false);
+  const [adjustmentMethod, setAdjustmentMethod] = useState<AdjustmentMethod>('average');
 
   useEffect(() => {
     if (status === 'completed' && !fairnessStats.isBalanced) {
@@ -49,11 +52,20 @@ function LeaderboardContent() {
     }
   }, [status, fairnessStats.isBalanced]);
 
-  // Calculate adjusted standings
+  // Calculate adjusted standings based on selected method
   const adjustedStandings = useMemo(() => {
-    if (!settings) return [];
+    if (!settings || !tournament) return [];
+
+    if (adjustmentMethod === 'opponent-based') {
+      return calculateOpponentBasedAdjustment(
+        leaderboard,
+        tournament.matches,
+        settings.pointsPerMatch
+      );
+    }
+
     return calculateAdjustedStandings(leaderboard, settings.pointsPerMatch);
-  }, [leaderboard, settings]);
+  }, [leaderboard, settings, tournament, adjustmentMethod]);
 
   // Sort by adjusted if showing adjusted
   const displayStandings = useMemo(() => {
@@ -161,6 +173,8 @@ function LeaderboardContent() {
             <AdjustmentToggle
               enabled={showAdjusted}
               onChange={setShowAdjusted}
+              method={adjustmentMethod}
+              onMethodChange={setAdjustmentMethod}
               maxMatches={fairnessStats.maxMatches}
             />
           </div>
