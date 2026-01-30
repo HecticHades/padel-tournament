@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useCallback } from 'react';
+import { useMemo, useCallback, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/Button';
@@ -34,6 +34,10 @@ function PlayContent() {
     finishTournament,
   } = useTournament();
 
+  // Match navigation state
+  const [currentMatchIndex, setCurrentMatchIndex] = useState(0);
+  const [showAll, setShowAll] = useState(false);
+
   // O(1) player lookup instead of O(n) find
   const playerMap = useMemo(
     () => new Map(players.map(p => [p.id, p.name])),
@@ -50,6 +54,19 @@ function PlayContent() {
     () => getPlayersWithFewerMatches(leaderboard),
     [leaderboard]
   );
+
+  // Match navigation handlers
+  const goToPreviousMatch = useCallback(() => {
+    setCurrentMatchIndex((prev) => Math.max(0, prev - 1));
+  }, []);
+
+  const goToNextMatch = useCallback(() => {
+    setCurrentMatchIndex((prev) => Math.min(currentRoundMatches.length - 1, prev + 1));
+  }, [currentRoundMatches.length]);
+
+  const toggleViewMode = useCallback(() => {
+    setShowAll((prev) => !prev);
+  }, []);
 
   const handleSubmitScore = (matchId: string, score1: number, score2: number) => {
     submitScore(matchId, score1, score2);
@@ -155,18 +172,97 @@ function PlayContent() {
           </Card>
         ) : null}
 
+        {/* View mode toggle */}
+        {currentRoundMatches.length > 1 && (
+          <div className="flex justify-end mb-4">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={toggleViewMode}
+            >
+              {showAll ? labels.showSingleMatch : labels.showAllMatches}
+            </Button>
+          </div>
+        )}
+
         {/* Matches */}
-        <div className="space-y-4 mb-6">
-          {currentRoundMatches.map((match) => (
-            <MatchScoreInput
-              key={match.id}
-              match={match}
-              players={players}
-              pointsPerMatch={settings?.pointsPerMatch || 24}
-              onSubmit={(score1, score2) => handleSubmitScore(match.id, score1, score2)}
-            />
-          ))}
-        </div>
+        {showAll ? (
+          <div className="space-y-4 mb-6">
+            {currentRoundMatches.map((match) => (
+              <MatchScoreInput
+                key={match.id}
+                match={match}
+                players={players}
+                pointsPerMatch={settings?.pointsPerMatch || 24}
+                onSubmit={(score1, score2) => handleSubmitScore(match.id, score1, score2)}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="mb-6">
+            {/* Match navigation header */}
+            {currentRoundMatches.length > 1 && (
+              <div className="flex items-center justify-between mb-4">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={goToPreviousMatch}
+                  disabled={currentMatchIndex === 0}
+                  aria-label={labels.previousMatch}
+                >
+                  &larr; {labels.previousMatch}
+                </Button>
+                <span className="text-sm font-medium text-slate-600 dark:text-slate-400">
+                  {labels.matchOf
+                    .replace('{current}', (currentMatchIndex + 1).toString())
+                    .replace('{total}', currentRoundMatches.length.toString())}
+                </span>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={goToNextMatch}
+                  disabled={currentMatchIndex === currentRoundMatches.length - 1}
+                  aria-label={labels.nextMatch}
+                >
+                  {labels.nextMatch} &rarr;
+                </Button>
+              </div>
+            )}
+
+            {/* Current match */}
+            {currentRoundMatches[currentMatchIndex] && (
+              <MatchScoreInput
+                match={currentRoundMatches[currentMatchIndex]}
+                players={players}
+                pointsPerMatch={settings?.pointsPerMatch || 24}
+                onSubmit={(score1, score2) =>
+                  handleSubmitScore(currentRoundMatches[currentMatchIndex].id, score1, score2)
+                }
+              />
+            )}
+
+            {/* Match indicators */}
+            {currentRoundMatches.length > 1 && (
+              <div className="flex justify-center gap-2 mt-4">
+                {currentRoundMatches.map((match, index) => (
+                  <button
+                    key={match.id}
+                    type="button"
+                    onClick={() => setCurrentMatchIndex(index)}
+                    className={`w-3 h-3 rounded-full transition-colors ${
+                      index === currentMatchIndex
+                        ? 'bg-emerald-500'
+                        : match.completed
+                          ? 'bg-slate-400 dark:bg-slate-500'
+                          : 'bg-slate-200 dark:bg-slate-700'
+                    }`}
+                    aria-label={`Spiel ${index + 1}${match.completed ? ' (abgeschlossen)' : ''}`}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Round complete / Tournament complete */}
         {isRoundComplete ? (

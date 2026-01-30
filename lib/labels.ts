@@ -77,6 +77,13 @@ export const labels = {
   allMatchesComplete: 'Alle Spiele abgeschlossen',
   scoreError: 'Punkte müssen zusammen {total} ergeben',
 
+  // Match navigation
+  matchOf: 'Spiel {current} von {total}',
+  previousMatch: 'Vorheriges',
+  nextMatch: 'Nächstes',
+  showAllMatches: 'Alle anzeigen',
+  showSingleMatch: 'Einzelansicht',
+
   // Leaderboard
   rank: 'Rang',
   player: 'Spieler',
