@@ -7,7 +7,7 @@ interface ScheduleResult {
   totalRounds: number;
 }
 
-// Generate all unique pairs from players
+// Generate all unique pairs (partnerships) from players
 function generateAllPairs(playerIds: string[]): [string, string][] {
   const pairs: [string, string][] = [];
   for (let i = 0; i < playerIds.length; i++) {
@@ -18,14 +18,13 @@ function generateAllPairs(playerIds: string[]): [string, string][] {
   return pairs;
 }
 
-// Check if a player is already in a round
-function playerInRound(playerId: string, roundMatches: Match[]): boolean {
-  return roundMatches.some(
-    m => m.team1.includes(playerId) || m.team2.includes(playerId)
-  );
+// Check if two pairs share a player
+function pairsOverlap(pair1: [string, string], pair2: [string, string]): boolean {
+  return pair1[0] === pair2[0] || pair1[0] === pair2[1] ||
+         pair1[1] === pair2[0] || pair1[1] === pair2[1];
 }
 
-// Get players in a round
+// Get all players from matches in a round
 function getPlayersInRound(roundMatches: Match[]): Set<string> {
   const players = new Set<string>();
   for (const match of roundMatches) {
@@ -35,267 +34,274 @@ function getPlayersInRound(roundMatches: Match[]): Set<string> {
   return players;
 }
 
-// Calculate how many times two players have been partners
-function partnerCount(
-  player1: string,
-  player2: string,
-  matches: Match[]
-): number {
-  return matches.filter(m => {
-    const team1HasBoth = m.team1.includes(player1) && m.team1.includes(player2);
-    const team2HasBoth = m.team2.includes(player1) && m.team2.includes(player2);
-    return team1HasBoth || team2HasBoth;
-  }).length;
-}
-
-// Calculate how many times two players have been opponents
-function opponentCount(
-  player1: string,
-  player2: string,
-  matches: Match[]
-): number {
-  return matches.filter(m => {
-    const p1Team1 = m.team1.includes(player1);
-    const p1Team2 = m.team2.includes(player1);
-    const p2Team1 = m.team1.includes(player2);
-    const p2Team2 = m.team2.includes(player2);
-    return (p1Team1 && p2Team2) || (p1Team2 && p2Team1);
-  }).length;
-}
-
-// Score a potential match based on fairness
-function scoreMatch(
-  team1: [string, string],
-  team2: [string, string],
-  existingMatches: Match[]
-): number {
-  // Lower score is better
-  let score = 0;
-
-  // Penalize repeat partnerships
-  score += partnerCount(team1[0], team1[1], existingMatches) * 10;
-  score += partnerCount(team2[0], team2[1], existingMatches) * 10;
-
-  // Smaller penalty for repeat opponents
-  score += opponentCount(team1[0], team2[0], existingMatches) * 5;
-  score += opponentCount(team1[0], team2[1], existingMatches) * 5;
-  score += opponentCount(team1[1], team2[0], existingMatches) * 5;
-  score += opponentCount(team1[1], team2[1], existingMatches) * 5;
-
-  return score;
-}
-
-// Try to create a match for a round
-function createMatchForRound(
-  availablePlayers: string[],
-  existingMatches: Match[],
-  roundMatches: Match[],
-  round: number,
-  court: number
-): Match | null {
-  if (availablePlayers.length < 4) return null;
-
-  // Generate all possible team combinations
-  const allPairs = generateAllPairs(availablePlayers);
-  let bestMatch: Match | null = null;
-  let bestScore = Infinity;
-
-  // Try different pair combinations
-  for (let i = 0; i < allPairs.length; i++) {
-    const team1 = allPairs[i];
-
-    for (let j = i + 1; j < allPairs.length; j++) {
-      const team2 = allPairs[j];
-
-      // Check if teams share a player
-      if (
-        team1[0] === team2[0] ||
-        team1[0] === team2[1] ||
-        team1[1] === team2[0] ||
-        team1[1] === team2[1]
-      ) {
-        continue;
-      }
-
-      const score = scoreMatch(team1, team2, [...existingMatches, ...roundMatches]);
-
-      if (score < bestScore) {
-        bestScore = score;
-        bestMatch = {
-          id: generateId(),
-          round,
-          court,
-          team1,
-          team2,
-          score1: null,
-          score2: null,
-          completed: false,
-        };
-      }
-    }
-  }
-
-  return bestMatch;
-}
-
-// Main scheduling function
+/**
+ * Main Americano scheduling algorithm
+ *
+ * Goal: Each player partners with every other player exactly once
+ *
+ * Mathematics:
+ * - n players → C(n,2) = n*(n-1)/2 unique partnerships needed
+ * - Each match uses 2 partnerships (2 teams of 2)
+ * - Total matches needed = n*(n-1)/4
+ * - Each player plays (n-1) matches
+ *
+ * This only works perfectly when n*(n-1) is divisible by 4:
+ * - n ≡ 0 (mod 4): 4, 8, 12 players
+ * - n ≡ 1 (mod 4): 5, 9, 13 players
+ *
+ * For other values, some partnerships may repeat or be missing.
+ */
 export function generateSchedule(
   players: Player[],
   courts: number,
   pointsPerMatch: number
 ): ScheduleResult {
-  const playerIds = players.map(p => p.id);
-  const numPlayers = playerIds.length;
+  const playerIds = shuffleArray(players.map(p => p.id));
+  const n = playerIds.length;
 
-  if (numPlayers < 4) {
+  if (n < 4) {
     return { matches: [], byesByRound: {}, totalRounds: 0 };
   }
 
-  // Calculate target number of rounds
-  // In Americano, we want each player to play with as many different partners as possible
-  // With n players, each player can have n-1 different partners
-  // Each match gives a player 1 partner, so ideal rounds = n-1
-  // But with courts limiting matches per round, we need to adjust
-  const matchesPerRound = Math.min(courts, Math.floor(numPlayers / 4));
-  const playersPerRound = matchesPerRound * 4;
+  // Generate all required partnerships
+  const allPairs = generateAllPairs(playerIds);
+  const usedPairs = new Set<string>();
 
-  // Target: each player plays approximately the same number of matches
-  // Aim for each player to partner with most others at least once
-  const targetRounds = Math.ceil((numPlayers - 1) / 2) + 1;
-  const maxRounds = Math.min(targetRounds, 15); // Cap at 15 rounds
+  // Helper to create pair key for tracking
+  const pairKey = (p1: string, p2: string) =>
+    p1 < p2 ? `${p1}|${p2}` : `${p2}|${p1}`;
+
+  // Helper to check if pair is already used
+  const isPairUsed = (pair: [string, string]) =>
+    usedPairs.has(pairKey(pair[0], pair[1]));
+
+  // Helper to mark pair as used
+  const markPairUsed = (pair: [string, string]) =>
+    usedPairs.add(pairKey(pair[0], pair[1]));
 
   const matches: Match[] = [];
   const byesByRound: Record<number, string[]> = {};
-  const playerMatchCount: Record<string, number> = {};
+  let round = 1;
 
-  // Initialize match counts
-  playerIds.forEach(id => {
-    playerMatchCount[id] = 0;
-  });
-
-  for (let round = 1; round <= maxRounds; round++) {
+  // Keep creating rounds until all partnerships are used
+  while (usedPairs.size < allPairs.length) {
     const roundMatches: Match[] = [];
+    const playersInRound = new Set<string>();
+    let court = 1;
 
-    // Sort players by match count (ascending) to prioritize those with fewer matches
-    const sortedPlayers = shuffleArray([...playerIds]).sort(
-      (a, b) => playerMatchCount[a] - playerMatchCount[b]
-    );
+    // Get unused pairs, sorted to prioritize players with fewer matches
+    const playerMatchCount: Record<string, number> = {};
+    playerIds.forEach(id => { playerMatchCount[id] = 0; });
+    matches.forEach(m => {
+      [...m.team1, ...m.team2].forEach(p => { playerMatchCount[p]++; });
+    });
 
-    let availablePlayers = [...sortedPlayers];
+    // Filter to only unused pairs
+    const availablePairs = allPairs.filter(pair => !isPairUsed(pair));
 
-    for (let court = 1; court <= courts && availablePlayers.length >= 4; court++) {
-      const match = createMatchForRound(
-        availablePlayers,
-        matches,
-        roundMatches,
-        round,
-        court
-      );
+    // Sort pairs by sum of player match counts (prioritize players with fewer matches)
+    availablePairs.sort((a, b) => {
+      const scoreA = playerMatchCount[a[0]] + playerMatchCount[a[1]];
+      const scoreB = playerMatchCount[b[0]] + playerMatchCount[b[1]];
+      return scoreA - scoreB;
+    });
 
-      if (match) {
+    // Try to form matches for this round
+    for (const team1 of availablePairs) {
+      // Skip if any player in this pair is already playing this round
+      if (playersInRound.has(team1[0]) || playersInRound.has(team1[1])) {
+        continue;
+      }
+
+      // Skip if this pair is already used
+      if (isPairUsed(team1)) {
+        continue;
+      }
+
+      // Find a compatible team2
+      let bestTeam2: [string, string] | null = null;
+      let bestScore = Infinity;
+
+      for (const team2 of availablePairs) {
+        // Skip if same pair or overlapping players
+        if (pairsOverlap(team1, team2)) {
+          continue;
+        }
+
+        // Skip if any player in team2 is already playing this round
+        if (playersInRound.has(team2[0]) || playersInRound.has(team2[1])) {
+          continue;
+        }
+
+        // Skip if this pair is already used
+        if (isPairUsed(team2)) {
+          continue;
+        }
+
+        // Score: prioritize players with fewer matches
+        const score = playerMatchCount[team2[0]] + playerMatchCount[team2[1]];
+        if (score < bestScore) {
+          bestScore = score;
+          bestTeam2 = team2;
+        }
+      }
+
+      if (bestTeam2 && court <= courts) {
+        // Create match
+        const match: Match = {
+          id: generateId(),
+          round,
+          court,
+          team1,
+          team2: bestTeam2,
+          score1: null,
+          score2: null,
+          completed: false,
+        };
+
         roundMatches.push(match);
+        markPairUsed(team1);
+        markPairUsed(bestTeam2);
 
-        // Remove assigned players from available pool
-        const assignedPlayers = [...match.team1, ...match.team2];
-        availablePlayers = availablePlayers.filter(
-          p => !assignedPlayers.includes(p)
-        );
+        // Mark players as playing this round
+        team1.forEach(p => playersInRound.add(p));
+        bestTeam2.forEach(p => playersInRound.add(p));
 
-        // Update match counts
-        assignedPlayers.forEach(p => {
-          playerMatchCount[p]++;
-        });
+        court++;
       }
     }
 
-    // Record byes (players not in any match this round)
-    const playersInRound = getPlayersInRound(roundMatches);
+    // If we couldn't create any matches, break to avoid infinite loop
+    if (roundMatches.length === 0) {
+      break;
+    }
+
+    // Record byes for this round
     const byePlayers = playerIds.filter(p => !playersInRound.has(p));
     byesByRound[round] = byePlayers;
 
     matches.push(...roundMatches);
+    round++;
 
-    // Check if we have good distribution
-    const minMatches = Math.min(...Object.values(playerMatchCount));
-    const maxMatches = Math.max(...Object.values(playerMatchCount));
-
-    // If distribution is too uneven and we've played enough rounds, we can stop
-    if (round >= numPlayers - 1 && maxMatches - minMatches <= 1) {
+    // Safety check: don't exceed a reasonable number of rounds
+    if (round > n * 2) {
       break;
     }
   }
 
-  // Determine actual number of rounds
-  const totalRounds = Math.max(...matches.map(m => m.round), 0);
+  const totalRounds = round - 1;
 
   return { matches, byesByRound, totalRounds };
 }
 
-// Estimate number of matches and rounds
+// Estimate schedule statistics
 export function estimateSchedule(
   numPlayers: number,
   courts: number
-): { rounds: number; matchesPerPlayer: number } {
+): { rounds: number; matchesPerPlayer: number; perfectSchedule: boolean } {
   if (numPlayers < 4) {
-    return { rounds: 0, matchesPerPlayer: 0 };
+    return { rounds: 0, matchesPerPlayer: 0, perfectSchedule: false };
   }
 
-  const matchesPerRound = Math.min(courts, Math.floor(numPlayers / 4));
-  const playersPerRound = matchesPerRound * 4;
-  const targetRounds = Math.ceil((numPlayers - 1) / 2) + 1;
-  const rounds = Math.min(targetRounds, 15);
+  const n = numPlayers;
 
-  // Average matches per player
-  const totalMatches = matchesPerRound * rounds;
-  const matchesPerPlayer = Math.floor((totalMatches * 4) / numPlayers);
+  // Total partnerships needed
+  const totalPairs = (n * (n - 1)) / 2;
 
-  return { rounds, matchesPerPlayer };
+  // Total matches needed (2 pairs per match)
+  const totalMatches = totalPairs / 2;
+
+  // Each player plays (n-1) matches
+  const matchesPerPlayer = n - 1;
+
+  // Check if perfect schedule is possible
+  // n*(n-1) must be divisible by 4
+  const perfectSchedule = (n * (n - 1)) % 4 === 0;
+
+  // Matches per round (limited by courts and players)
+  const matchesPerRound = Math.min(courts, Math.floor(n / 4));
+
+  // Estimated rounds
+  const rounds = Math.ceil(totalMatches / matchesPerRound);
+
+  return { rounds, matchesPerPlayer, perfectSchedule };
 }
 
-// Get schedule statistics
+// Get schedule statistics for verification
 export function getScheduleStats(
   matches: Match[],
   players: Player[]
 ): {
   matchesPerPlayer: Record<string, number>;
   partnershipsCount: Record<string, number>;
+  partnershipMatrix: Record<string, Record<string, number>>;
   minMatches: number;
   maxMatches: number;
+  allPartnered: boolean;
 } {
   const matchesPerPlayer: Record<string, number> = {};
   const partnershipsCount: Record<string, number> = {};
+  const partnershipMatrix: Record<string, Record<string, number>> = {};
 
+  // Initialize
   players.forEach(p => {
     matchesPerPlayer[p.id] = 0;
     partnershipsCount[p.id] = 0;
+    partnershipMatrix[p.id] = {};
+    players.forEach(q => {
+      if (p.id !== q.id) {
+        partnershipMatrix[p.id][q.id] = 0;
+      }
+    });
   });
 
-  const seenPartners: Record<string, Set<string>> = {};
-  players.forEach(p => {
-    seenPartners[p.id] = new Set();
-  });
-
+  // Count matches and partnerships
   matches.forEach(match => {
-    // Count matches
+    // Count matches per player
     [...match.team1, ...match.team2].forEach(pId => {
       matchesPerPlayer[pId] = (matchesPerPlayer[pId] || 0) + 1;
     });
 
-    // Track unique partners
-    seenPartners[match.team1[0]]?.add(match.team1[1]);
-    seenPartners[match.team1[1]]?.add(match.team1[0]);
-    seenPartners[match.team2[0]]?.add(match.team2[1]);
-    seenPartners[match.team2[1]]?.add(match.team2[0]);
+    // Count partnerships
+    // Team 1
+    const [p1, p2] = match.team1;
+    if (partnershipMatrix[p1]) partnershipMatrix[p1][p2] = (partnershipMatrix[p1][p2] || 0) + 1;
+    if (partnershipMatrix[p2]) partnershipMatrix[p2][p1] = (partnershipMatrix[p2][p1] || 0) + 1;
+
+    // Team 2
+    const [p3, p4] = match.team2;
+    if (partnershipMatrix[p3]) partnershipMatrix[p3][p4] = (partnershipMatrix[p3][p4] || 0) + 1;
+    if (partnershipMatrix[p4]) partnershipMatrix[p4][p3] = (partnershipMatrix[p4][p3] || 0) + 1;
   });
 
   // Count unique partners
   players.forEach(p => {
-    partnershipsCount[p.id] = seenPartners[p.id]?.size || 0;
+    partnershipsCount[p.id] = Object.values(partnershipMatrix[p.id] || {})
+      .filter(count => count > 0).length;
   });
+
+  // Check if everyone has partnered with everyone
+  let allPartnered = true;
+  for (const p of players) {
+    for (const q of players) {
+      if (p.id !== q.id && (partnershipMatrix[p.id]?.[q.id] || 0) === 0) {
+        allPartnered = false;
+        break;
+      }
+    }
+    if (!allPartnered) break;
+  }
 
   const counts = Object.values(matchesPerPlayer);
   const minMatches = Math.min(...counts);
   const maxMatches = Math.max(...counts);
 
-  return { matchesPerPlayer, partnershipsCount, minMatches, maxMatches };
+  return {
+    matchesPerPlayer,
+    partnershipsCount,
+    partnershipMatrix,
+    minMatches,
+    maxMatches,
+    allPartnered
+  };
 }

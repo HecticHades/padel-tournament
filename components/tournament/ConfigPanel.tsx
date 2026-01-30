@@ -18,7 +18,7 @@ export function ConfigPanel({
   onUpdate,
   disabled = false,
 }: ConfigPanelProps) {
-  const { rounds, matchesPerPlayer } = estimateSchedule(numPlayers, settings.courts);
+  const { rounds, matchesPerPlayer, perfectSchedule } = estimateSchedule(numPlayers, settings.courts);
 
   return (
     <Card>
@@ -74,14 +74,23 @@ export function ConfigPanel({
 
         {/* Estimate */}
         {numPlayers >= 4 && (
-          <div className="p-3 rounded-lg bg-slate-100 dark:bg-slate-700">
+          <div className="p-3 rounded-lg bg-slate-100 dark:bg-slate-700 space-y-1">
             <p className="text-sm text-slate-600 dark:text-slate-400">
               <span className="font-medium text-slate-900 dark:text-slate-100">
                 {rounds} {labels.rounds}
               </span>
               {' '}&bull;{' '}
-              ca. {matchesPerPlayer} Spiele pro Spieler
+              {matchesPerPlayer} Spiele pro Spieler
             </p>
+            <p className="text-sm text-slate-600 dark:text-slate-400">
+              Jeder spielt mit jedem anderen einmal als Partner
+            </p>
+            {!perfectSchedule && (
+              <p className="text-xs text-amber-600 dark:text-amber-400">
+                Hinweis: Bei {numPlayers} Spielern ist kein perfekter Spielplan möglich.
+                Empfohlen: 4, 5, 8, 9, 12 oder 13 Spieler.
+              </p>
+            )}
           </div>
         )}
       </CardContent>
