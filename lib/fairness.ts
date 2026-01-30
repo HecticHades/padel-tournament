@@ -299,13 +299,9 @@ export function calculateOpponentBasedAdjustment(
       };
     }
 
-    const missingMatches = maxMatches - standing.matchesPlayed;
     const facedOpponents = playerOpponents.get(standing.playerId) || new Set();
 
-    // Calculate estimated points for missing matches
-    let estimatedAdditionalPoints = 0;
-
-    // First, try to estimate based on opponents not yet faced
+    // Find opponents this player hasn't faced
     const unfacedOpponents: string[] = [];
     standings.forEach(potentialOpponent => {
       if (potentialOpponent.playerId === standing.playerId) return;
@@ -314,48 +310,25 @@ export function calculateOpponentBasedAdjustment(
       }
     });
 
-    if (unfacedOpponents.length > 0) {
-      // Estimate based on how others performed against unfaced opponents
-      unfacedOpponents.forEach(opponentId => {
-        const avgAgainst = avgPointsAgainst.get(opponentId) || pointsPerMatch / 2;
-        estimatedAdditionalPoints += avgAgainst;
-      });
-
-      // Scale to missing matches if needed
-      if (unfacedOpponents.length > missingMatches) {
-        estimatedAdditionalPoints = (estimatedAdditionalPoints / unfacedOpponents.length) * missingMatches;
-      } else if (unfacedOpponents.length < missingMatches) {
-        // Not enough unfaced opponents - fill remaining with player's average
-        const remainingMatches = missingMatches - unfacedOpponents.length;
-        estimatedAdditionalPoints += standing.average * remainingMatches;
-      }
-    } else {
-      // Player has faced everyone - estimate based on their performance against all opponents
-      // Use weighted average: how did this player perform against each opponent?
-      let playerTotalAgainstAll = 0;
-      let playerMatchesAgainstAll = 0;
-
-      standings.forEach(opponent => {
-        if (opponent.playerId === standing.playerId) return;
-
-        const key = `${standing.playerId}_vs_${opponent.playerId}`;
-        const data = pointsAgainstOpponent.get(key);
-        if (data && data.count > 0) {
-          playerTotalAgainstAll += data.total;
-          playerMatchesAgainstAll += data.count;
-        }
-      });
-
-      // Average points per opponent-match for this player
-      const avgPerOpponentMatch = playerMatchesAgainstAll > 0
-        ? playerTotalAgainstAll / playerMatchesAgainstAll
-        : standing.average;
-
-      estimatedAdditionalPoints = avgPerOpponentMatch * missingMatches;
+    // Only adjust if there are unfaced opponents
+    if (unfacedOpponents.length === 0) {
+      return {
+        ...standing,
+        adjustedPoints: standing.points,
+        adjustedAverage: standing.average,
+      };
     }
 
+    // Estimate points based on how others performed against unfaced opponents
+    let estimatedAdditionalPoints = 0;
+    unfacedOpponents.forEach(opponentId => {
+      const avgAgainst = avgPointsAgainst.get(opponentId) || pointsPerMatch / 2;
+      estimatedAdditionalPoints += avgAgainst;
+    });
+
     const adjustedPoints = standing.points + estimatedAdditionalPoints;
-    const adjustedAverage = adjustedPoints / maxMatches;
+    const totalMatches = standing.matchesPlayed + unfacedOpponents.length;
+    const adjustedAverage = adjustedPoints / totalMatches;
 
     return {
       ...standing,
