@@ -3,6 +3,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { LeaderboardTable } from '@/components/leaderboard/LeaderboardTable';
@@ -110,16 +111,35 @@ function LeaderboardContent() {
 
         {/* Tournament completed status */}
         {status === 'completed' && (
-          <Card className="mb-6 bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800">
+          <Card className="mb-6 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border-green-200 dark:border-green-800">
             <CardContent>
-              <p className="text-green-700 dark:text-green-300 font-medium text-center mb-3">
-                Turnier abgeschlossen
-              </p>
+              <div className="flex items-center gap-4">
+                <div className="relative flex-shrink-0">
+                  <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-hidden ring-2 ring-green-500 ring-offset-2 ring-offset-green-50 dark:ring-offset-green-900/20">
+                    <Image
+                      src="/sandi.png"
+                      alt="Sandi gratuliert"
+                      width={80}
+                      height={80}
+                      className="object-cover w-full h-full"
+                    />
+                  </div>
+                </div>
+                <div className="flex-1">
+                  <p className="text-green-700 dark:text-green-300 font-bold text-lg">
+                    Gratulation!
+                  </p>
+                  <p className="text-green-600 dark:text-green-400 text-sm">
+                    Turnier erfolgreich abgeschlossen
+                  </p>
+                </div>
+              </div>
               {!isReadOnly && (
                 <Button
                   variant="secondary"
                   fullWidth
                   onClick={() => setShowRestartConfirm(true)}
+                  className="mt-4"
                 >
                   {labels.restartTournament}
                 </Button>

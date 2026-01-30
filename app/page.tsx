@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { Button } from '@/components/ui/Button';
 import { Card, CardContent } from '@/components/ui/Card';
 import { PinSetupModal } from '@/components/auth/PinSetupModal';
@@ -70,6 +71,31 @@ export default function HomePage() {
         {!hasTournament ? (
           // No tournament - show welcome and create
           <div className="space-y-6">
+            {/* Host/Mascot Section */}
+            <div className="flex flex-col items-center text-center py-4">
+              <div className="relative mb-4">
+                <div className="w-32 h-32 sm:w-40 sm:h-40 rounded-full overflow-hidden ring-4 ring-primary-500 ring-offset-4 ring-offset-slate-50 dark:ring-offset-slate-900 shadow-xl">
+                  <Image
+                    src="/sandi.png"
+                    alt="Sandi - Dein Turnierleiter"
+                    width={160}
+                    height={160}
+                    className="object-cover w-full h-full"
+                    priority
+                  />
+                </div>
+                <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-primary-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg">
+                  Turnierleiter
+                </div>
+              </div>
+              <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
+                Sandi
+              </h2>
+              <p className="text-slate-500 dark:text-slate-400 text-sm">
+                heisst dich willkommen!
+              </p>
+            </div>
+
             <Card>
               <CardContent>
                 <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100 mb-3">
@@ -95,22 +121,38 @@ export default function HomePage() {
         ) : (
           // Existing tournament
           <div className="space-y-6">
+            {/* Sandi with tournament info */}
             <Card>
               <CardContent>
-                <div className="flex items-center justify-between mb-2">
-                  <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100">
-                    {tournament?.name}
-                  </h2>
-                  <span className="text-sm text-slate-500 dark:text-slate-400">
-                    {labels.tournamentStatus[tournament?.status || 'setup']}
-                  </span>
+                <div className="flex items-center gap-4">
+                  <div className="relative flex-shrink-0">
+                    <div className="w-16 h-16 rounded-full overflow-hidden ring-2 ring-primary-500 ring-offset-2 ring-offset-white dark:ring-offset-slate-800">
+                      <Image
+                        src="/sandi.png"
+                        alt="Sandi - Turnierleiter"
+                        width={64}
+                        height={64}
+                        className="object-cover w-full h-full"
+                      />
+                    </div>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2">
+                      <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100 truncate">
+                        {tournament?.name}
+                      </h2>
+                      <span className="text-xs font-medium px-2 py-1 rounded-full bg-primary-100 dark:bg-primary-900 text-primary-700 dark:text-primary-300 flex-shrink-0">
+                        {labels.tournamentStatus[tournament?.status || 'setup']}
+                      </span>
+                    </div>
+                    <p className="text-slate-600 dark:text-slate-400 text-sm">
+                      {tournament?.players.length} {labels.players}
+                      {(tournament?.matches.length ?? 0) > 0 ? (
+                        <> • {labels.round} {tournament?.currentRound} / {tournament?.settings.rounds}</>
+                      ) : null}
+                    </p>
+                  </div>
                 </div>
-                <p className="text-slate-600 dark:text-slate-400">
-                  {tournament?.players.length} {labels.players}
-                  {(tournament?.matches.length ?? 0) > 0 ? (
-                    <> • {labels.round} {tournament?.currentRound} / {tournament?.settings.rounds}</>
-                  ) : null}
-                </p>
               </CardContent>
             </Card>
 
