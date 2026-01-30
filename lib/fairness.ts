@@ -189,7 +189,7 @@ export function hasFewerMatches(
 /**
  * Calculate opponent-based adjusted standings.
  * For players with fewer matches, estimate points for missing matches
- * based on how other players performed against those opponents.
+ * based on how opponents performed in their matches (average points lost).
  */
 export function calculateOpponentBasedAdjustment(
   standings: Standing[],
@@ -217,68 +217,58 @@ export function calculateOpponentBasedAdjustment(
     }));
   }
 
-  // Build a map of which opponents each player has faced
-  const playerOpponents = new Map<string, Set<string>>();
-  // Build a map of points scored against each opponent by all players
-  const pointsAgainstOpponent = new Map<string, { total: number; count: number }>();
+  const completedMatches = matches.filter(m => m.completed);
 
+  // Track which opponents each player has faced
+  const playerOpponents = new Map<string, Set<string>>();
   standings.forEach(s => playerOpponents.set(s.playerId, new Set()));
 
-  // Process completed matches
-  matches.filter(m => m.completed).forEach(match => {
-    const team1Players = match.team1;
-    const team2Players = match.team2;
+  // Track points lost by each player (points the opponent scored against them)
+  const pointsLostByPlayer = new Map<string, { total: number; matchCount: number }>();
+  standings.forEach(s => pointsLostByPlayer.set(s.playerId, { total: 0, matchCount: 0 }));
+
+  // Process matches
+  completedMatches.forEach(match => {
     const score1 = match.score1 || 0;
     const score2 = match.score2 || 0;
 
-    // Each player in team1 faced each player in team2
-    team1Players.forEach(p1 => {
-      team2Players.forEach(p2 => {
-        // p1 faced p2
+    // Mark opponents as faced
+    match.team1.forEach(p1 => {
+      match.team2.forEach(p2 => {
         playerOpponents.get(p1)?.add(p2);
         playerOpponents.get(p2)?.add(p1);
-
-        // Points scored by p1 against p2
-        const key1 = `${p1}_vs_${p2}`;
-        const existing1 = pointsAgainstOpponent.get(key1) || { total: 0, count: 0 };
-        pointsAgainstOpponent.set(key1, {
-          total: existing1.total + score1,
-          count: existing1.count + 1,
-        });
-
-        // Points scored by p2 against p1
-        const key2 = `${p2}_vs_${p1}`;
-        const existing2 = pointsAgainstOpponent.get(key2) || { total: 0, count: 0 };
-        pointsAgainstOpponent.set(key2, {
-          total: existing2.total + score2,
-          count: existing2.count + 1,
-        });
       });
     });
-  });
 
-  // Calculate average points others scored against each opponent
-  const avgPointsAgainst = new Map<string, number>();
-  standings.forEach(opponent => {
-    let totalPoints = 0;
-    let matchCount = 0;
-
-    standings.forEach(player => {
-      if (player.playerId === opponent.playerId) return;
-
-      const key = `${player.playerId}_vs_${opponent.playerId}`;
-      const data = pointsAgainstOpponent.get(key);
-      if (data && data.count > 0) {
-        totalPoints += data.total;
-        matchCount += data.count;
+    // Team1 players lost score2 points (opponent scored score2 against them)
+    match.team1.forEach(p => {
+      const data = pointsLostByPlayer.get(p);
+      if (data) {
+        data.total += score2;
+        data.matchCount += 1;
       }
     });
 
-    // Average points scored against this opponent
-    avgPointsAgainst.set(
-      opponent.playerId,
-      matchCount > 0 ? totalPoints / matchCount : pointsPerMatch / 2
-    );
+    // Team2 players lost score1 points (opponent scored score1 against them)
+    match.team2.forEach(p => {
+      const data = pointsLostByPlayer.get(p);
+      if (data) {
+        data.total += score1;
+        data.matchCount += 1;
+      }
+    });
+  });
+
+  // Calculate average points lost per match for each player
+  // This tells us: "How many points do opponents typically score against this player?"
+  const avgPointsLost = new Map<string, number>();
+  standings.forEach(s => {
+    const data = pointsLostByPlayer.get(s.playerId);
+    if (data && data.matchCount > 0) {
+      avgPointsLost.set(s.playerId, data.total / data.matchCount);
+    } else {
+      avgPointsLost.set(s.playerId, pointsPerMatch / 2);
+    }
   });
 
   // Calculate adjusted standings
@@ -319,11 +309,13 @@ export function calculateOpponentBasedAdjustment(
       };
     }
 
-    // Estimate points based on how others performed against unfaced opponents
+    // Estimate points: For each unfaced opponent, estimate how many points
+    // this player would score based on how many points that opponent typically loses
     let estimatedAdditionalPoints = 0;
     unfacedOpponents.forEach(opponentId => {
-      const avgAgainst = avgPointsAgainst.get(opponentId) || pointsPerMatch / 2;
-      estimatedAdditionalPoints += avgAgainst;
+      // How many points does this opponent typically lose per match?
+      const opponentAvgLost = avgPointsLost.get(opponentId) || pointsPerMatch / 2;
+      estimatedAdditionalPoints += opponentAvgLost;
     });
 
     const adjustedPoints = standing.points + estimatedAdditionalPoints;
