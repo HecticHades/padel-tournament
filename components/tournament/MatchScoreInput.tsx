@@ -26,6 +26,7 @@ export function MatchScoreInput({
   const [score1, setScore1] = useState<number | ''>(match.score1 ?? '');
   const [score2, setScore2] = useState<number | ''>(match.score2 ?? '');
   const [error, setError] = useState<string | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
 
   // O(1) player lookup instead of O(n) find
   const playerMap = useMemo(
@@ -37,6 +38,14 @@ export function MatchScoreInput({
     (id: string) => playerMap.get(id) || 'Unbekannt',
     [playerMap]
   );
+
+  // Sync scores when match data changes (e.g., from external update)
+  useEffect(() => {
+    if (!isEditing) {
+      setScore1(match.score1 ?? '');
+      setScore2(match.score2 ?? '');
+    }
+  }, [match.score1, match.score2, isEditing]);
 
   // Auto-calculate score2 when score1 changes
   useEffect(() => {
@@ -71,9 +80,25 @@ export function MatchScoreInput({
     }
 
     onSubmit(score1, score2);
+    setIsEditing(false);
+  };
+
+  const handleEdit = () => {
+    setIsEditing(true);
+    setError(null);
+  };
+
+  const handleCancelEdit = () => {
+    // Reset to original values
+    setScore1(match.score1 ?? '');
+    setScore2(match.score2 ?? '');
+    setIsEditing(false);
+    setError(null);
   };
 
   const isComplete = match.completed;
+  const canEdit = isComplete && !disabled && !isEditing;
+  const isInputDisabled = disabled || (isComplete && !isEditing);
 
   return (
     <Card className={isComplete ? 'opacity-75' : ''}>
@@ -109,7 +134,7 @@ export function MatchScoreInput({
                 onChange={handleScore1Change}
                 min={0}
                 max={pointsPerMatch}
-                disabled={disabled || isComplete}
+                disabled={isInputDisabled}
                 aria-label={`Punkte ${labels.team} 1`}
               />
             </div>
@@ -152,16 +177,42 @@ export function MatchScoreInput({
           </div>
         )}
 
-        {/* Submit button */}
-        {!isComplete && !disabled && (
-          <Button
-            className="mt-4"
-            fullWidth
-            onClick={handleSubmit}
-            disabled={typeof score1 !== 'number'}
-          >
-            {labels.submit}
-          </Button>
+        {/* Buttons */}
+        {!disabled && (
+          <div className="mt-4 space-y-2">
+            {/* New match or editing */}
+            {(!isComplete || isEditing) && (
+              <div className="flex gap-2">
+                {isEditing && (
+                  <Button
+                    variant="secondary"
+                    fullWidth
+                    onClick={handleCancelEdit}
+                  >
+                    Abbrechen
+                  </Button>
+                )}
+                <Button
+                  fullWidth
+                  onClick={handleSubmit}
+                  disabled={typeof score1 !== 'number'}
+                >
+                  {isEditing ? 'Änderung speichern' : labels.submit}
+                </Button>
+              </div>
+            )}
+
+            {/* Edit button for completed matches */}
+            {canEdit && (
+              <Button
+                variant="ghost"
+                fullWidth
+                onClick={handleEdit}
+              >
+                Ergebnis bearbeiten
+              </Button>
+            )}
+          </div>
         )}
       </CardContent>
     </Card>
