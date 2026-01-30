@@ -192,6 +192,7 @@ interface TournamentContextType {
   submitScore: (matchId: string, score1: number, score2: number) => void;
   advanceRound: () => void;
   finishTournament: () => void;
+  restartTournament: () => void;
   importTournamentData: (data: TournamentData) => void;
   // Auth actions
   login: (pin: string) => boolean;
@@ -343,6 +344,22 @@ export function TournamentProvider({ children }: { children: React.ReactNode }) 
     dispatch({ type: 'SET_STATUS', payload: 'completed' });
   }, []);
 
+  const restartTournament = useCallback(() => {
+    if (!state.tournament) return;
+
+    // Reset tournament to setup state, keeping players and settings
+    dispatch({
+      type: 'UPDATE_TOURNAMENT',
+      payload: {
+        matches: [],
+        byesByRound: {},
+        currentRound: 1,
+        status: 'setup',
+        settings: { ...state.tournament.settings, rounds: 0 },
+      },
+    });
+  }, [state.tournament]);
+
   const importTournamentData = useCallback((data: TournamentData) => {
     saveTournament(data);
     dispatch({ type: 'SET_TOURNAMENT', payload: data });
@@ -480,6 +497,7 @@ export function TournamentProvider({ children }: { children: React.ReactNode }) 
     submitScore,
     advanceRound,
     finishTournament,
+    restartTournament,
     importTournamentData,
     login,
     loginReadOnly,

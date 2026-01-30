@@ -89,12 +89,7 @@ export function RoundCard({
         {byePlayerNames.length > 0 && (
           <div className="pt-2 border-t border-slate-200 dark:border-slate-600">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-sm text-slate-500 dark:text-slate-400">
-                {labels.byePlayers}:
-              </span>
-              {byePlayerNames.map((name) => (
-                <ByeBadge key={name} />
-              ))}
+              <ByeBadge />
               <span className="text-sm text-slate-700 dark:text-slate-300">
                 {byePlayerNames.join(', ')}
               </span>

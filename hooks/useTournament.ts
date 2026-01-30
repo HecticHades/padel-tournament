@@ -16,6 +16,7 @@ export function useTournament() {
     submitScore,
     advanceRound,
     finishTournament,
+    restartTournament,
     importTournamentData,
     currentRoundMatches,
     currentRoundByes,
@@ -43,6 +44,7 @@ export function useTournament() {
     submitScore,
     advanceRound,
     finishTournament,
+    restartTournament,
     importTournamentData,
 
     // Computed values

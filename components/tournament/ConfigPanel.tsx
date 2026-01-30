@@ -31,13 +31,14 @@ export function ConfigPanel({
           <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
             {labels.pointsPerMatch}
           </label>
-          <div className="flex gap-2">
-            {([16, 24, 32] as const).map((points) => (
+          <div className="flex gap-2 items-center">
+            {/* Preset buttons */}
+            {[16, 24, 32].map((points) => (
               <button
                 key={points}
                 onClick={() => onUpdate({ pointsPerMatch: points })}
                 disabled={disabled}
-                className={`flex-1 py-2 px-3 rounded-lg border-2 transition-colors font-medium ${
+                className={`py-2 px-3 rounded-lg border-2 transition-colors font-medium ${
                   settings.pointsPerMatch === points
                     ? 'border-primary-500 bg-primary-50 text-primary-700 dark:bg-primary-900 dark:text-primary-300'
                     : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 text-slate-700 dark:text-slate-300'
@@ -46,6 +47,29 @@ export function ConfigPanel({
                 {points}
               </button>
             ))}
+            {/* Custom input */}
+            <div className="flex items-center gap-1">
+              <span className="text-sm text-slate-500 dark:text-slate-400">oder:</span>
+              <input
+                type="number"
+                min="1"
+                max="99"
+                value={![16, 24, 32].includes(settings.pointsPerMatch) ? settings.pointsPerMatch : ''}
+                placeholder="..."
+                onChange={(e) => {
+                  const val = parseInt(e.target.value, 10);
+                  if (val > 0 && val <= 99) {
+                    onUpdate({ pointsPerMatch: val });
+                  }
+                }}
+                disabled={disabled}
+                className={`w-16 py-2 px-2 text-center rounded-lg border-2 font-medium transition-colors ${
+                  ![16, 24, 32].includes(settings.pointsPerMatch)
+                    ? 'border-primary-500 bg-primary-50 text-primary-700 dark:bg-primary-900 dark:text-primary-300'
+                    : 'border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300'
+                } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+              />
+            </div>
           </div>
         </div>
 

@@ -24,9 +24,10 @@ import {
 
 function LeaderboardContent() {
   const router = useRouter();
-  const { tournament, leaderboard, settings, status, currentRound, totalRounds } =
+  const { tournament, leaderboard, settings, status, currentRound, totalRounds, restartTournament } =
     useTournament();
   const { isReadOnly } = useAuth();
+  const [showRestartConfirm, setShowRestartConfirm] = useState(false);
 
   // Fairness stats
   const fairnessStats = useMemo(() => {
@@ -111,9 +112,18 @@ function LeaderboardContent() {
         {status === 'completed' && (
           <Card className="mb-6 bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800">
             <CardContent>
-              <p className="text-green-700 dark:text-green-300 font-medium text-center">
+              <p className="text-green-700 dark:text-green-300 font-medium text-center mb-3">
                 Turnier abgeschlossen
               </p>
+              {!isReadOnly && (
+                <Button
+                  variant="secondary"
+                  fullWidth
+                  onClick={() => setShowRestartConfirm(true)}
+                >
+                  {labels.restartTournament}
+                </Button>
+              )}
             </CardContent>
           </Card>
         )}
@@ -168,6 +178,46 @@ function LeaderboardContent() {
             maxMatches={fairnessStats.maxMatches}
           />
         </div>
+
+        {/* Restart confirmation modal */}
+        {showRestartConfirm && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div
+              className="absolute inset-0 bg-black/50 dark:bg-black/70"
+              onClick={() => setShowRestartConfirm(false)}
+            />
+            <Card className="relative w-full max-w-sm">
+              <CardContent>
+                <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-2">
+                  {labels.restartConfirmTitle}
+                </h3>
+                <p className="text-slate-600 dark:text-slate-400 mb-4">
+                  {labels.restartConfirmMessage}
+                </p>
+                <div className="flex gap-3">
+                  <Button
+                    variant="secondary"
+                    fullWidth
+                    onClick={() => setShowRestartConfirm(false)}
+                  >
+                    {labels.cancel}
+                  </Button>
+                  <Button
+                    variant="primary"
+                    fullWidth
+                    onClick={() => {
+                      restartTournament();
+                      setShowRestartConfirm(false);
+                      router.push('/setup');
+                    }}
+                  >
+                    {labels.restartConfirm}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
       </div>
     </main>
   );

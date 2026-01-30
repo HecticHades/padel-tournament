@@ -102,6 +102,16 @@ export const labels = {
   resetConfirm: 'Ja, zurücksetzen',
   cancel: 'Abbrechen',
 
+  // Restart tournament
+  restartTournament: 'Neuer Durchlauf',
+  restartConfirmTitle: 'Neuen Durchlauf starten?',
+  restartConfirmMessage: 'Das Turnier wird mit denselben Spielern aber neuen, zufälligen Paarungen neu gestartet. Die aktuelle Rangliste wird zurückgesetzt.',
+  restartConfirm: 'Ja, neu starten',
+
+  // Fewer matches warning
+  fewerMatchesWarning: 'Bei {count} Spielern haben einige Spieler weniger Spiele',
+  fewerMatchesNote: 'Diese Spieler werden am Turnierende auf die maximale Spielanzahl hochgerechnet.',
+
   // Status
   tournamentStatus: {
     setup: 'Vorbereitung',

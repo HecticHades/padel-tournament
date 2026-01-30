@@ -19,7 +19,7 @@ export interface Match {
 
 // Settings
 export interface TournamentSettings {
-  pointsPerMatch: 16 | 24 | 32;
+  pointsPerMatch: number;
   courts: number;
   rounds: number;
 }
