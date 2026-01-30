@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/Button';
@@ -34,14 +34,22 @@ function PlayContent() {
     finishTournament,
   } = useTournament();
 
-  const getPlayerName = (id: string) => {
-    return players.find((p) => p.id === id)?.name || 'Unbekannt';
-  };
+  // O(1) player lookup instead of O(n) find
+  const playerMap = useMemo(
+    () => new Map(players.map(p => [p.id, p.name])),
+    [players]
+  );
+
+  const getPlayerName = useCallback(
+    (id: string) => playerMap.get(id) || 'Unbekannt',
+    [playerMap]
+  );
 
   // Players with fewer matches
-  const playersWithFewerMatches = useMemo(() => {
-    return getPlayersWithFewerMatches(leaderboard);
-  }, [leaderboard]);
+  const playersWithFewerMatches = useMemo(
+    () => getPlayersWithFewerMatches(leaderboard),
+    [leaderboard]
+  );
 
   const handleSubmitScore = (matchId: string, score1: number, score2: number) => {
     submitScore(matchId, score1, score2);
@@ -124,14 +132,14 @@ function PlayContent() {
         </div>
 
         {/* Fewer matches notification */}
-        {playersWithFewerMatches.length > 0 && (
+        {playersWithFewerMatches.length > 0 ? (
           <div className="mb-6">
             <FewerMatchesNotification players={playersWithFewerMatches} />
           </div>
-        )}
+        ) : null}
 
         {/* Bye players */}
-        {currentRoundByes.length > 0 && (
+        {currentRoundByes.length > 0 ? (
           <Card className="mb-6">
             <CardContent>
               <div className="flex items-center gap-2 flex-wrap">
@@ -145,7 +153,7 @@ function PlayContent() {
               </div>
             </CardContent>
           </Card>
-        )}
+        ) : null}
 
         {/* Matches */}
         <div className="space-y-4 mb-6">
@@ -161,7 +169,7 @@ function PlayContent() {
         </div>
 
         {/* Round complete / Tournament complete */}
-        {isRoundComplete && (
+        {isRoundComplete ? (
           <div className="space-y-3">
             {isTournamentComplete || currentRound >= totalRounds ? (
               <Button size="lg" fullWidth onClick={handleFinish}>
@@ -173,13 +181,13 @@ function PlayContent() {
               </Button>
             )}
           </div>
-        )}
+        ) : null}
 
-        {!isRoundComplete && currentRoundMatches.length > 0 && (
+        {!isRoundComplete && currentRoundMatches.length > 0 ? (
           <p className="text-center text-slate-500 dark:text-slate-400 text-sm">
             {totalMatchesInRound - completedMatches} Spiele ausstehend
           </p>
-        )}
+        ) : null}
       </div>
     </main>
   );

@@ -107,9 +107,9 @@ export default function HomePage() {
                 </div>
                 <p className="text-slate-600 dark:text-slate-400">
                   {tournament?.players.length} {labels.players}
-                  {(tournament?.matches.length ?? 0) > 0 && (
+                  {(tournament?.matches.length ?? 0) > 0 ? (
                     <> • {labels.round} {tournament?.currentRound} / {tournament?.settings.rounds}</>
-                  )}
+                  ) : null}
                 </p>
               </CardContent>
             </Card>
@@ -119,7 +119,7 @@ export default function HomePage() {
                 {labels.continueTournament}
               </Button>
 
-              {(tournament?.matches.length ?? 0) > 0 && (
+              {(tournament?.matches.length ?? 0) > 0 ? (
                 <Button
                   size="lg"
                   fullWidth
@@ -128,7 +128,7 @@ export default function HomePage() {
                 >
                   {labels.viewLeaderboard}
                 </Button>
-              )}
+              ) : null}
 
               <Button
                 size="lg"

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Card, CardContent } from '@/components/ui/Card';
 import { NumberInput } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
@@ -27,9 +27,16 @@ export function MatchScoreInput({
   const [score2, setScore2] = useState<number | ''>(match.score2 ?? '');
   const [error, setError] = useState<string | null>(null);
 
-  const getPlayerName = (id: string) => {
-    return players.find((p) => p.id === id)?.name || 'Unbekannt';
-  };
+  // O(1) player lookup instead of O(n) find
+  const playerMap = useMemo(
+    () => new Map(players.map(p => [p.id, p.name])),
+    [players]
+  );
+
+  const getPlayerName = useCallback(
+    (id: string) => playerMap.get(id) || 'Unbekannt',
+    [playerMap]
+  );
 
   // Auto-calculate score2 when score1 changes
   useEffect(() => {

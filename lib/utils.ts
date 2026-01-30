@@ -100,10 +100,23 @@ export function deepClone<T>(obj: T): T {
   return JSON.parse(JSON.stringify(obj));
 }
 
-// Check if arrays have same elements (order independent)
+// Check if arrays have same elements (order independent) - O(n) using Map
 export function arraysEqual<T>(a: T[], b: T[]): boolean {
   if (a.length !== b.length) return false;
-  const sortedA = [...a].sort();
-  const sortedB = [...b].sort();
-  return sortedA.every((val, idx) => val === sortedB[idx]);
+
+  const counts = new Map<T, number>();
+
+  // Count elements in first array
+  for (const item of a) {
+    counts.set(item, (counts.get(item) || 0) + 1);
+  }
+
+  // Subtract counts using second array
+  for (const item of b) {
+    const count = counts.get(item);
+    if (count === undefined || count === 0) return false;
+    counts.set(item, count - 1);
+  }
+
+  return true;
 }

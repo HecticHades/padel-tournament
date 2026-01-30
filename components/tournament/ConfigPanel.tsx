@@ -1,5 +1,6 @@
 'use client';
 
+import { useMemo, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { labels } from '@/lib/labels';
 import type { TournamentSettings } from '@/lib/types';
@@ -18,7 +19,27 @@ export function ConfigPanel({
   onUpdate,
   disabled = false,
 }: ConfigPanelProps) {
-  const { rounds, matchesPerPlayer, perfectSchedule } = estimateSchedule(numPlayers, settings.courts);
+  const { rounds, matchesPerPlayer, perfectSchedule } = useMemo(
+    () => estimateSchedule(numPlayers, settings.courts),
+    [numPlayers, settings.courts]
+  );
+
+  const handlePointsChange = useCallback((points: number) => {
+    onUpdate({ pointsPerMatch: points });
+  }, [onUpdate]);
+
+  const handleCourtsChange = useCallback((courts: number) => {
+    onUpdate({ courts });
+  }, [onUpdate]);
+
+  const handleCustomPointsChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = parseInt(e.target.value, 10);
+    if (val > 0 && val <= 99) {
+      onUpdate({ pointsPerMatch: val });
+    }
+  }, [onUpdate]);
+
+  const isCustomPoints = ![16, 24, 32].includes(settings.pointsPerMatch);
 
   return (
     <Card>
@@ -36,7 +57,7 @@ export function ConfigPanel({
             {[16, 24, 32].map((points) => (
               <button
                 key={points}
-                onClick={() => onUpdate({ pointsPerMatch: points })}
+                onClick={() => handlePointsChange(points)}
                 disabled={disabled}
                 className={`py-2 px-3 rounded-lg border-2 transition-colors font-medium ${
                   settings.pointsPerMatch === points
@@ -54,17 +75,12 @@ export function ConfigPanel({
                 type="number"
                 min="1"
                 max="99"
-                value={![16, 24, 32].includes(settings.pointsPerMatch) ? settings.pointsPerMatch : ''}
+                value={isCustomPoints ? settings.pointsPerMatch : ''}
                 placeholder="..."
-                onChange={(e) => {
-                  const val = parseInt(e.target.value, 10);
-                  if (val > 0 && val <= 99) {
-                    onUpdate({ pointsPerMatch: val });
-                  }
-                }}
+                onChange={handleCustomPointsChange}
                 disabled={disabled}
                 className={`w-16 py-2 px-2 text-center rounded-lg border-2 font-medium transition-colors ${
-                  ![16, 24, 32].includes(settings.pointsPerMatch)
+                  isCustomPoints
                     ? 'border-primary-500 bg-primary-50 text-primary-700 dark:bg-primary-900 dark:text-primary-300'
                     : 'border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300'
                 } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
@@ -82,7 +98,7 @@ export function ConfigPanel({
             {[1, 2, 3, 4].map((courtNum) => (
               <button
                 key={courtNum}
-                onClick={() => onUpdate({ courts: courtNum })}
+                onClick={() => handleCourtsChange(courtNum)}
                 disabled={disabled}
                 className={`flex-1 py-2 px-3 rounded-lg border-2 transition-colors font-medium ${
                   settings.courts === courtNum

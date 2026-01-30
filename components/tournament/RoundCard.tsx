@@ -1,5 +1,6 @@
 'use client';
 
+import { useMemo, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Badge, ByeBadge, StatusBadge } from '@/components/ui/Badge';
 import type { Match, Player } from '@/lib/types';
@@ -22,11 +23,21 @@ export function RoundCard({
   isCurrentRound = false,
   onMatchClick,
 }: RoundCardProps) {
-  const getPlayerName = (id: string) => {
-    return players.find((p) => p.id === id)?.name || 'Unbekannt';
-  };
+  // O(1) player lookup instead of O(n) find
+  const playerMap = useMemo(
+    () => new Map(players.map(p => [p.id, p.name])),
+    [players]
+  );
 
-  const byePlayerNames = byePlayers.map(getPlayerName);
+  const getPlayerName = useCallback(
+    (id: string) => playerMap.get(id) || 'Unbekannt',
+    [playerMap]
+  );
+
+  const byePlayerNames = useMemo(
+    () => byePlayers.map(id => playerMap.get(id) || 'Unbekannt'),
+    [byePlayers, playerMap]
+  );
 
   return (
     <Card className={isCurrentRound ? 'ring-2 ring-primary-500' : ''}>

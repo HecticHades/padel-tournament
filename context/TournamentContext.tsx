@@ -428,36 +428,46 @@ export function TournamentProvider({ children }: { children: React.ReactNode }) 
 
     const { players, matches, byesByRound } = state.tournament;
 
-    const standings: Standing[] = players.map(player => {
-      const playerMatches = matches.filter(
-        m =>
-          m.completed &&
-          (m.team1.includes(player.id) || m.team2.includes(player.id))
-      );
+    // Pre-compute player stats in a single pass through matches - O(matches)
+    const playerStats = new Map<string, { points: number; completed: number; total: number }>();
+    players.forEach(p => playerStats.set(p.id, { points: 0, completed: 0, total: 0 }));
 
-      const totalMatches = matches.filter(
-        m => m.team1.includes(player.id) || m.team2.includes(player.id)
-      ).length;
-
-      let points = 0;
-      playerMatches.forEach(match => {
-        const isTeam1 = match.team1.includes(player.id);
-        points += isTeam1 ? (match.score1 || 0) : (match.score2 || 0);
+    matches.forEach(match => {
+      const allPlayers = [...match.team1, ...match.team2];
+      allPlayers.forEach(playerId => {
+        const stats = playerStats.get(playerId);
+        if (stats) {
+          stats.total++;
+          if (match.completed) {
+            stats.completed++;
+            const isTeam1 = match.team1.includes(playerId);
+            stats.points += isTeam1 ? (match.score1 || 0) : (match.score2 || 0);
+          }
+        }
       });
+    });
 
-      const byes = Object.values(byesByRound).filter(
-        byeList => byeList.includes(player.id)
-      ).length;
+    // Pre-compute byes count per player - O(rounds * byes)
+    const byesCount = new Map<string, number>();
+    players.forEach(p => byesCount.set(p.id, 0));
+    Object.values(byesByRound).forEach(byeList => {
+      byeList.forEach(playerId => {
+        byesCount.set(playerId, (byesCount.get(playerId) || 0) + 1);
+      });
+    });
 
-      const matchesPlayed = playerMatches.length;
-      const average = matchesPlayed > 0 ? points / matchesPlayed : 0;
+    // Build standings - O(players)
+    const standings: Standing[] = players.map(player => {
+      const stats = playerStats.get(player.id) || { points: 0, completed: 0, total: 0 };
+      const byes = byesCount.get(player.id) || 0;
+      const average = stats.completed > 0 ? stats.points / stats.completed : 0;
 
       return {
         playerId: player.id,
         playerName: player.name,
-        points,
-        matchesPlayed,
-        matchesTotal: totalMatches,
+        points: stats.points,
+        matchesPlayed: stats.completed,
+        matchesTotal: stats.total,
         byes,
         average,
       };
