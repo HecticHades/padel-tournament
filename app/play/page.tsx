@@ -148,8 +148,8 @@ function PlayContent() {
           </Button>
         </div>
 
-        {/* Fewer matches notification */}
-        {playersWithFewerMatches.length > 0 ? (
+        {/* Fewer matches notification - only show in round 1 */}
+        {currentRound === 1 && playersWithFewerMatches.length > 0 ? (
           <div className="mb-6">
             <FewerMatchesNotification players={playersWithFewerMatches} />
           </div>

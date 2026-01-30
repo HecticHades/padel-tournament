@@ -84,6 +84,13 @@ export const labels = {
   showAllMatches: 'Alle anzeigen',
   showSingleMatch: 'Einzelansicht',
 
+  // Round navigation
+  previousRound: 'Vorherige',
+  nextRoundNav: 'Nächste',
+  showAllRounds: 'Alle Runden',
+  showSingleRound: 'Einzelansicht',
+  editScore: 'Ergebnis bearbeiten',
+
   // Leaderboard
   rank: 'Rang',
   player: 'Spieler',

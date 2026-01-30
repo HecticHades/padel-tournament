@@ -59,7 +59,9 @@ export function RoundCard({
           <div
             key={match.id}
             className={`p-3 rounded-lg bg-slate-50 dark:bg-slate-700/50 ${
-              onMatchClick ? 'cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700' : ''
+              onMatchClick
+                ? 'cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 hover:ring-2 hover:ring-primary-300 dark:hover:ring-primary-600 transition-all'
+                : ''
             }`}
             onClick={() => onMatchClick?.(match.id)}
           >
@@ -67,7 +69,14 @@ export function RoundCard({
               <span className="text-xs text-slate-500 dark:text-slate-400">
                 {labels.court} {match.court}
               </span>
-              <StatusBadge completed={match.completed} />
+              <div className="flex items-center gap-2">
+                {onMatchClick && (
+                  <span className="text-xs text-primary-500 dark:text-primary-400">
+                    ✎
+                  </span>
+                )}
+                <StatusBadge completed={match.completed} />
+              </div>
             </div>
             <div className="flex items-center justify-between">
               <div className="flex-1">
