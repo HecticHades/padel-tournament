@@ -1,20 +1,29 @@
-import type { Standing, AdjustedStanding, Match, Player } from './types';
+import type { Standing, AdjustedStanding } from './types';
 
-// Calculate adjusted standings that account for different number of matches played
+/**
+ * Calculate adjusted standings that account for different number of matches played.
+ * Players with fewer matches get their average points extrapolated to the max match count.
+ */
 export function calculateAdjustedStandings(
   standings: Standing[],
   pointsPerMatch: number
 ): AdjustedStanding[] {
   if (standings.length === 0) return [];
 
-  // Find the average number of matches played
-  const totalMatches = standings.reduce((sum, s) => sum + s.matchesPlayed, 0);
-  const avgMatches = totalMatches / standings.length;
+  // Find the maximum number of matches played
+  const maxMatches = Math.max(...standings.map(s => s.matchesPlayed));
+
+  // If no one has played yet, no adjustment needed
+  if (maxMatches === 0) {
+    return standings.map(s => ({
+      ...s,
+      adjustedPoints: 0,
+      adjustedAverage: 0,
+    }));
+  }
 
   // If everyone has the same number of matches, no adjustment needed
-  const allSameMatches = standings.every(
-    s => s.matchesPlayed === standings[0].matchesPlayed
-  );
+  const allSameMatches = standings.every(s => s.matchesPlayed === maxMatches);
 
   if (allSameMatches) {
     return standings.map(s => ({
@@ -25,7 +34,7 @@ export function calculateAdjustedStandings(
   }
 
   // Calculate adjusted points
-  // Players with fewer matches get their average projected to the average match count
+  // Players with fewer matches get their average extrapolated to maxMatches
   return standings.map(standing => {
     if (standing.matchesPlayed === 0) {
       return {
@@ -35,33 +44,21 @@ export function calculateAdjustedStandings(
       };
     }
 
-    // Calculate what their points would be if they played the average number of matches
-    // Based on their current average
-    const projectedPoints = standing.average * avgMatches;
-
-    // Blend between actual points and projected points based on how far from average
-    // If they played less, give more weight to projection
-    // If they played more, give more weight to actual
-    const matchDiff = standing.matchesPlayed - avgMatches;
-    let blendFactor: number;
-
-    if (matchDiff >= 0) {
-      // Played more than average - use actual points
-      blendFactor = 0;
-    } else {
-      // Played less than average - blend based on how many fewer
-      // More missing matches = more projection
-      blendFactor = Math.min(1, Math.abs(matchDiff) / avgMatches);
+    // If player has fewer matches, extrapolate their average to maxMatches
+    if (standing.matchesPlayed < maxMatches) {
+      const adjustedPoints = standing.average * maxMatches;
+      return {
+        ...standing,
+        adjustedPoints: Math.round(adjustedPoints * 10) / 10,
+        adjustedAverage: standing.average,
+      };
     }
 
-    const adjustedPoints =
-      standing.points * (1 - blendFactor) + projectedPoints * blendFactor;
-    const adjustedAverage = avgMatches > 0 ? adjustedPoints / avgMatches : 0;
-
+    // Player has maxMatches - use actual points
     return {
       ...standing,
-      adjustedPoints: Math.round(adjustedPoints * 10) / 10,
-      adjustedAverage: Math.round(adjustedAverage * 10) / 10,
+      adjustedPoints: standing.points,
+      adjustedAverage: standing.average,
     };
   });
 }
@@ -88,6 +85,7 @@ export function calculateFairnessStats(
   minMatches: number;
   maxMatches: number;
   avgMatches: number;
+  playersWithFewerMatches: string[];
 } {
   if (standings.length === 0) {
     return {
@@ -96,36 +94,62 @@ export function calculateFairnessStats(
       minMatches: 0,
       maxMatches: 0,
       avgMatches: 0,
+      playersWithFewerMatches: [],
     };
   }
 
   const matchCounts = standings.map(s => s.matchesPlayed);
   const minMatches = Math.min(...matchCounts);
   const maxMatches = Math.max(...matchCounts);
-  const avgMatches =
-    matchCounts.reduce((sum, c) => sum + c, 0) / matchCounts.length;
+  const avgMatches = matchCounts.reduce((sum, c) => sum + c, 0) / matchCounts.length;
 
   // Calculate variance
   const variance =
     matchCounts.reduce((sum, c) => sum + Math.pow(c - avgMatches, 2), 0) /
     matchCounts.length;
 
+  // Find players with fewer matches than max
+  const playersWithFewerMatches = standings
+    .filter(s => s.matchesPlayed < maxMatches)
+    .map(s => s.playerName);
+
   return {
     matchVariance: Math.sqrt(variance),
-    isBalanced: maxMatches - minMatches <= 1,
+    isBalanced: maxMatches - minMatches === 0,
     minMatches,
     maxMatches,
     avgMatches,
+    playersWithFewerMatches,
   };
+}
+
+// Get detailed info about players with fewer matches
+export function getPlayersWithFewerMatches(
+  standings: Standing[]
+): { name: string; matchesPlayed: number; maxMatches: number; difference: number }[] {
+  if (standings.length === 0) return [];
+
+  const maxMatches = Math.max(...standings.map(s => s.matchesPlayed));
+
+  return standings
+    .filter(s => s.matchesPlayed < maxMatches)
+    .map(s => ({
+      name: s.playerName,
+      matchesPlayed: s.matchesPlayed,
+      maxMatches,
+      difference: maxMatches - s.matchesPlayed,
+    }))
+    .sort((a, b) => a.matchesPlayed - b.matchesPlayed);
 }
 
 // Generate CSV data for export
 export function generateLeaderboardCsv(
   standings: Standing[] | AdjustedStanding[],
-  showAdjusted: boolean
+  showAdjusted: boolean,
+  maxMatches: number
 ): { headers: string[]; rows: string[][] } {
   const headers = showAdjusted
-    ? ['Rang', 'Spieler', 'Punkte', 'Angepasst', 'Spiele', 'Schnitt', 'Pausen']
+    ? ['Rang', 'Spieler', 'Punkte', `Hochgerechnet (${maxMatches} Spiele)`, 'Spiele', 'Schnitt', 'Pausen']
     : ['Rang', 'Spieler', 'Punkte', 'Spiele', 'Schnitt', 'Pausen'];
 
   const rows = standings.map((s, index) => {
@@ -151,16 +175,13 @@ export function generateLeaderboardCsv(
   return { headers, rows };
 }
 
-// Check if a player has fewer matches than average
+// Check if a player has fewer matches than max
 export function hasFewerMatches(
   standing: Standing,
   allStandings: Standing[]
 ): boolean {
   if (allStandings.length === 0) return false;
 
-  const avgMatches =
-    allStandings.reduce((sum, s) => sum + s.matchesPlayed, 0) /
-    allStandings.length;
-
-  return standing.matchesPlayed < Math.floor(avgMatches);
+  const maxMatches = Math.max(...allStandings.map(s => s.matchesPlayed));
+  return standing.matchesPlayed < maxMatches;
 }

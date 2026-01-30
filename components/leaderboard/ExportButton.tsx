@@ -10,17 +10,19 @@ interface ExportButtonsProps {
   standings: Standing[] | AdjustedStanding[];
   showAdjusted: boolean;
   tournament: TournamentData | null;
+  maxMatches: number;
 }
 
 export function ExportButtons({
   standings,
   showAdjusted,
   tournament,
+  maxMatches,
 }: ExportButtonsProps) {
   const handleExportCsv = () => {
     if (!tournament) return;
 
-    const { headers, rows } = generateLeaderboardCsv(standings, showAdjusted);
+    const { headers, rows } = generateLeaderboardCsv(standings, showAdjusted, maxMatches);
     const filename = `${tournament.name.replace(/[^a-zA-Z0-9]/g, '_')}_rangliste.csv`;
     downloadCsv(headers, rows, filename);
   };

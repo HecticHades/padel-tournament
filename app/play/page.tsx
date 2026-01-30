@@ -1,17 +1,20 @@
 'use client';
 
+import { useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/Button';
 import { Card, CardContent } from '@/components/ui/Card';
 import { MatchScoreInput } from '@/components/tournament/MatchScoreInput';
 import { ProgressBar } from '@/components/tournament/ProgressBar';
+import { FewerMatchesNotification } from '@/components/tournament/FewerMatchesNotification';
 import { ByeBadge } from '@/components/ui/Badge';
 import { AuthGuard } from '@/components/auth/AuthGuard';
 import { LogoutButton } from '@/components/auth/LogoutButton';
 import { DarkModeToggle } from '@/components/ui/DarkModeToggle';
 import { useTournament } from '@/hooks/useTournament';
 import { labels } from '@/lib/labels';
+import { getPlayersWithFewerMatches } from '@/lib/fairness';
 
 function PlayContent() {
   const router = useRouter();
@@ -25,6 +28,7 @@ function PlayContent() {
     currentRoundByes,
     isRoundComplete,
     isTournamentComplete,
+    leaderboard,
     submitScore,
     advanceRound,
     finishTournament,
@@ -33,6 +37,11 @@ function PlayContent() {
   const getPlayerName = (id: string) => {
     return players.find((p) => p.id === id)?.name || 'Unbekannt';
   };
+
+  // Players with fewer matches
+  const playersWithFewerMatches = useMemo(() => {
+    return getPlayersWithFewerMatches(leaderboard);
+  }, [leaderboard]);
 
   const handleSubmitScore = (matchId: string, score1: number, score2: number) => {
     submitScore(matchId, score1, score2);
@@ -113,6 +122,13 @@ function PlayContent() {
             {labels.leaderboard}
           </Button>
         </div>
+
+        {/* Fewer matches notification */}
+        {playersWithFewerMatches.length > 0 && (
+          <div className="mb-6">
+            <FewerMatchesNotification players={playersWithFewerMatches} />
+          </div>
+        )}
 
         {/* Bye players */}
         {currentRoundByes.length > 0 && (

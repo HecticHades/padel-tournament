@@ -1,13 +1,12 @@
 'use client';
 
-import { labels } from '@/lib/labels';
-
 interface AdjustmentToggleProps {
   enabled: boolean;
   onChange: (enabled: boolean) => void;
+  maxMatches?: number;
 }
 
-export function AdjustmentToggle({ enabled, onChange }: AdjustmentToggleProps) {
+export function AdjustmentToggle({ enabled, onChange, maxMatches }: AdjustmentToggleProps) {
   return (
     <div className="space-y-2">
       <label className="flex items-center gap-3 cursor-pointer">
@@ -22,12 +21,12 @@ export function AdjustmentToggle({ enabled, onChange }: AdjustmentToggleProps) {
           <div className="absolute left-0.5 top-0.5 w-5 h-5 bg-white rounded-full shadow-sm transition-transform peer-checked:translate-x-5" />
         </div>
         <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
-          {labels.showAdjusted}
+          Punkte hochrechnen {maxMatches ? `(auf ${maxMatches} Spiele)` : ''}
         </span>
       </label>
       {enabled && (
         <p className="text-xs text-slate-500 dark:text-slate-400 pl-14">
-          {labels.adjustedExplanation}
+          Spieler mit weniger Spielen werden basierend auf ihrem Durchschnitt auf {maxMatches || 'die maximale Spielanzahl'} Spiele hochgerechnet.
         </p>
       )}
     </div>

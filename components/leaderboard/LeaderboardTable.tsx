@@ -9,9 +9,10 @@ import { hasFewerMatches } from '@/lib/fairness';
 interface LeaderboardTableProps {
   standings: Standing[] | AdjustedStanding[];
   showAdjusted: boolean;
+  maxMatches?: number;
 }
 
-export function LeaderboardTable({ standings, showAdjusted }: LeaderboardTableProps) {
+export function LeaderboardTable({ standings, showAdjusted, maxMatches }: LeaderboardTableProps) {
   const isAdjusted = (s: Standing | AdjustedStanding): s is AdjustedStanding => {
     return 'adjustedPoints' in s;
   };
@@ -28,7 +29,7 @@ export function LeaderboardTable({ standings, showAdjusted }: LeaderboardTablePr
               {labels.player}
             </th>
             <th className="text-right py-3 px-2 text-sm font-medium text-slate-500 dark:text-slate-400">
-              {showAdjusted ? labels.adjustedPoints : labels.points}
+              {showAdjusted ? `Hochgerechnet` : labels.points}
             </th>
             <th className="text-right py-3 px-2 text-sm font-medium text-slate-500 dark:text-slate-400">
               {labels.matches}
@@ -43,11 +44,14 @@ export function LeaderboardTable({ standings, showAdjusted }: LeaderboardTablePr
             const rank = index + 1;
             const showMedal = rank <= 3 && standing.matchesPlayed > 0;
             const fewerMatches = hasFewerMatches(standing, standings);
+            const isExtrapolated = showAdjusted && isAdjusted(standing) && fewerMatches;
 
             return (
               <tr
                 key={standing.playerId}
-                className="border-b border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                className={`border-b border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 ${
+                  fewerMatches ? 'bg-amber-50/50 dark:bg-amber-900/10' : ''
+                }`}
               >
                 <td className="py-3 px-2">
                   <div className="flex items-center gap-2">
@@ -61,37 +65,40 @@ export function LeaderboardTable({ standings, showAdjusted }: LeaderboardTablePr
                   </div>
                 </td>
                 <td className="py-3 px-2">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-medium text-slate-900 dark:text-slate-100">
                       {standing.playerName}
                     </span>
                     {fewerMatches && (
                       <Badge variant="warning" size="sm">
-                        {labels.fewerMatches}
+                        {standing.matchesPlayed}/{maxMatches || '?'}
                       </Badge>
                     )}
                   </div>
                 </td>
-                <td className="py-3 px-2 text-right font-semibold text-slate-900 dark:text-slate-100">
-                  {showAdjusted && isAdjusted(standing)
-                    ? formatDecimal(standing.adjustedPoints, 1)
-                    : standing.points}
-                </td>
-                <td className="py-3 px-2 text-right text-slate-600 dark:text-slate-400">
-                  {standing.matchesPlayed}
-                  {standing.byes > 0 && (
-                    <span className="text-xs text-slate-400 dark:text-slate-500 ml-1">
-                      (+{standing.byes})
+                <td className="py-3 px-2 text-right">
+                  {showAdjusted && isAdjusted(standing) ? (
+                    <div>
+                      <span className={`font-semibold ${isExtrapolated ? 'text-amber-700 dark:text-amber-300' : 'text-slate-900 dark:text-slate-100'}`}>
+                        {formatDecimal(standing.adjustedPoints, 1)}
+                      </span>
+                      {isExtrapolated && (
+                        <div className="text-xs text-slate-500 dark:text-slate-400">
+                          (tatsächlich: {standing.points})
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <span className="font-semibold text-slate-900 dark:text-slate-100">
+                      {standing.points}
                     </span>
                   )}
                 </td>
                 <td className="py-3 px-2 text-right text-slate-600 dark:text-slate-400">
-                  {formatDecimal(
-                    showAdjusted && isAdjusted(standing)
-                      ? standing.adjustedAverage
-                      : standing.average,
-                    1
-                  )}
+                  {standing.matchesPlayed}
+                </td>
+                <td className="py-3 px-2 text-right text-slate-600 dark:text-slate-400">
+                  {formatDecimal(standing.average, 1)}
                 </td>
               </tr>
             );

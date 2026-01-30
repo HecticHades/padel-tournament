@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/Button';
 import { LeaderboardTable } from '@/components/leaderboard/LeaderboardTable';
 import { AdjustmentToggle } from '@/components/leaderboard/AdjustmentToggle';
 import { ExportButtons } from '@/components/leaderboard/ExportButton';
+import { FewerMatchesNotification } from '@/components/tournament/FewerMatchesNotification';
 import { AuthGuard } from '@/components/auth/AuthGuard';
 import { LogoutButton } from '@/components/auth/LogoutButton';
 import { DarkModeToggle } from '@/components/ui/DarkModeToggle';
@@ -18,6 +19,7 @@ import {
   calculateAdjustedStandings,
   sortByAdjusted,
   calculateFairnessStats,
+  getPlayersWithFewerMatches,
 } from '@/lib/fairness';
 
 function LeaderboardContent() {
@@ -26,7 +28,24 @@ function LeaderboardContent() {
     useTournament();
   const { isReadOnly } = useAuth();
 
+  // Fairness stats
+  const fairnessStats = useMemo(() => {
+    return calculateFairnessStats(leaderboard);
+  }, [leaderboard]);
+
+  // Players with fewer matches
+  const playersWithFewerMatches = useMemo(() => {
+    return getPlayersWithFewerMatches(leaderboard);
+  }, [leaderboard]);
+
+  // Auto-enable adjusted view when tournament is completed and there are imbalanced matches
   const [showAdjusted, setShowAdjusted] = useState(false);
+
+  useEffect(() => {
+    if (status === 'completed' && !fairnessStats.isBalanced) {
+      setShowAdjusted(true);
+    }
+  }, [status, fairnessStats.isBalanced]);
 
   // Calculate adjusted standings
   const adjustedStandings = useMemo(() => {
@@ -38,11 +57,6 @@ function LeaderboardContent() {
   const displayStandings = useMemo(() => {
     return showAdjusted ? sortByAdjusted(adjustedStandings) : leaderboard;
   }, [showAdjusted, adjustedStandings, leaderboard]);
-
-  // Fairness stats
-  const fairnessStats = useMemo(() => {
-    return calculateFairnessStats(leaderboard);
-  }, [leaderboard]);
 
   const showAdjustmentToggle = !fairnessStats.isBalanced;
 
@@ -93,7 +107,7 @@ function LeaderboardContent() {
           </Button>
         </div>
 
-        {/* Tournament status */}
+        {/* Tournament completed status */}
         {status === 'completed' && (
           <Card className="mb-6 bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800">
             <CardContent>
@@ -104,10 +118,21 @@ function LeaderboardContent() {
           </Card>
         )}
 
+        {/* Fewer matches notification */}
+        {playersWithFewerMatches.length > 0 && (
+          <div className="mb-6">
+            <FewerMatchesNotification players={playersWithFewerMatches} />
+          </div>
+        )}
+
         {/* Adjustment toggle */}
         {showAdjustmentToggle && (
           <div className="mb-4">
-            <AdjustmentToggle enabled={showAdjusted} onChange={setShowAdjusted} />
+            <AdjustmentToggle
+              enabled={showAdjusted}
+              onChange={setShowAdjusted}
+              maxMatches={fairnessStats.maxMatches}
+            />
           </div>
         )}
 
@@ -115,13 +140,21 @@ function LeaderboardContent() {
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
-              <CardTitle>{labels.leaderboard}</CardTitle>
+              <CardTitle>
+                {labels.leaderboard}
+                {showAdjusted && (
+                  <span className="ml-2 text-sm font-normal text-slate-500 dark:text-slate-400">
+                    (hochgerechnet auf {fairnessStats.maxMatches} Spiele)
+                  </span>
+                )}
+              </CardTitle>
             </div>
           </CardHeader>
           <CardContent>
             <LeaderboardTable
               standings={displayStandings}
               showAdjusted={showAdjusted}
+              maxMatches={fairnessStats.maxMatches}
             />
           </CardContent>
         </Card>
@@ -132,17 +165,9 @@ function LeaderboardContent() {
             standings={displayStandings}
             showAdjusted={showAdjusted}
             tournament={tournament}
+            maxMatches={fairnessStats.maxMatches}
           />
         </div>
-
-        {/* Stats */}
-        {!fairnessStats.isBalanced && (
-          <div className="mt-4 text-sm text-slate-500 dark:text-slate-400">
-            <p>
-              Spieleverteilung: {fairnessStats.minMatches} - {fairnessStats.maxMatches} Spiele
-            </p>
-          </div>
-        )}
       </div>
     </main>
   );
