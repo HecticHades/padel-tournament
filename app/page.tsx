@@ -77,7 +77,7 @@ export default function HomePage() {
                 <div className="w-32 h-32 sm:w-40 sm:h-40 rounded-full overflow-hidden ring-4 ring-primary-500 ring-offset-4 ring-offset-slate-50 dark:ring-offset-slate-900 shadow-xl">
                   <Image
                     src="/sandi.png"
-                    alt="Sandi - Dein Turnierleiter"
+                    alt="Sändi - Dein Turnierleiter"
                     width={160}
                     height={160}
                     className="object-cover w-full h-full"
@@ -89,7 +89,7 @@ export default function HomePage() {
                 </div>
               </div>
               <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
-                Sandi
+                Sändi
               </h2>
               <p className="text-slate-500 dark:text-slate-400 text-sm">
                 heisst dich willkommen!
@@ -129,7 +129,7 @@ export default function HomePage() {
                     <div className="w-16 h-16 rounded-full overflow-hidden ring-2 ring-primary-500 ring-offset-2 ring-offset-white dark:ring-offset-slate-800">
                       <Image
                         src="/sandi.png"
-                        alt="Sandi - Turnierleiter"
+                        alt="Sändi - Turnierleiter"
                         width={64}
                         height={64}
                         className="object-cover w-full h-full"

@@ -118,7 +118,7 @@ function LeaderboardContent() {
                   <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-hidden ring-2 ring-green-500 ring-offset-2 ring-offset-green-50 dark:ring-offset-green-900/20">
                     <Image
                       src="/sandi.png"
-                      alt="Sandi gratuliert"
+                      alt="Sändi gratuliert"
                       width={80}
                       height={80}
                       className="object-cover w-full h-full"
