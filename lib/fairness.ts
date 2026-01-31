@@ -358,7 +358,7 @@ export function calculatePartnerBasedAdjustment(
 
 /**
  * Calculate combined adjusted standings.
- * Average of: own average and partner-based (avg points won)
+ * Average of: own average and partner-based (avg points won by unplayed partners)
  */
 export function calculateCombinedAdjustment(
   standings: Standing[],
@@ -388,6 +388,10 @@ export function calculateCombinedAdjustment(
 
   const completedMatches = matches.filter(m => m.completed);
 
+  // Track which partners each player has played with
+  const playerPartners = new Map<string, Set<string>>();
+  standings.forEach(s => playerPartners.set(s.playerId, new Set()));
+
   // Track points won by each player
   const pointsWonByPlayer = new Map<string, { total: number; matchCount: number }>();
   standings.forEach(s => {
@@ -398,6 +402,16 @@ export function calculateCombinedAdjustment(
   completedMatches.forEach(match => {
     const score1 = match.score1 || 0;
     const score2 = match.score2 || 0;
+
+    // Track partners
+    if (match.team1.length === 2) {
+      playerPartners.get(match.team1[0])?.add(match.team1[1]);
+      playerPartners.get(match.team1[1])?.add(match.team1[0]);
+    }
+    if (match.team2.length === 2) {
+      playerPartners.get(match.team2[0])?.add(match.team2[1]);
+      playerPartners.get(match.team2[1])?.add(match.team2[0]);
+    }
 
     match.team1.forEach(p => {
       const wonData = pointsWonByPlayer.get(p);
@@ -446,16 +460,36 @@ export function calculateCombinedAdjustment(
     // 1. Own average
     const ownAverage = standing.average;
 
-    // 2. Average partner points won (excluding self)
-    let totalPartnerWon = 0;
-    let partnerCount = 0;
-    standings.forEach(partner => {
-      if (partner.playerId === standing.playerId) return;
-      const won = avgPointsWon.get(partner.playerId) || pointsPerMatch / 2;
-      totalPartnerWon += won;
-      partnerCount++;
+    // 2. Average points won by unplayed partners (same logic as partner-based)
+    const playedPartners = playerPartners.get(standing.playerId) || new Set();
+    const unplayedPartners: Array<{ name: string; avgPointsWon: number }> = [];
+
+    standings.forEach(potentialPartner => {
+      if (potentialPartner.playerId === standing.playerId) return;
+      if (playedPartners.has(potentialPartner.playerId)) return;
+
+      const won = avgPointsWon.get(potentialPartner.playerId) || pointsPerMatch / 2;
+      unplayedPartners.push({
+        name: potentialPartner.playerName,
+        avgPointsWon: Math.round(won * 10) / 10,
+      });
     });
-    const avgPartnerWon = partnerCount > 0 ? totalPartnerWon / partnerCount : pointsPerMatch / 2;
+
+    // If there are unplayed partners, use their average; otherwise use all other players
+    let avgPartnerWon: number;
+    if (unplayedPartners.length > 0) {
+      avgPartnerWon = unplayedPartners.reduce((sum, p) => sum + p.avgPointsWon, 0) / unplayedPartners.length;
+    } else {
+      let totalWon = 0;
+      let count = 0;
+      standings.forEach(other => {
+        if (other.playerId === standing.playerId) return;
+        const won = avgPointsWon.get(other.playerId) || pointsPerMatch / 2;
+        totalWon += won;
+        count++;
+      });
+      avgPartnerWon = count > 0 ? totalWon / count : pointsPerMatch / 2;
+    }
 
     // Combined average of both
     const combinedAverage = (ownAverage + avgPartnerWon) / 2;
