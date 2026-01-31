@@ -10,11 +10,16 @@ interface LeaderboardTableProps {
   standings: Standing[] | AdjustedStanding[];
   showAdjusted: boolean;
   maxMatches?: number;
+  showCalculationDetails?: boolean;
 }
 
-export function LeaderboardTable({ standings, showAdjusted, maxMatches }: LeaderboardTableProps) {
+export function LeaderboardTable({ standings, showAdjusted, maxMatches, showCalculationDetails }: LeaderboardTableProps) {
   const isAdjusted = (s: Standing | AdjustedStanding): s is AdjustedStanding => {
     return 'adjustedPoints' in s;
+  };
+
+  const hasCalculationDetails = (s: Standing | AdjustedStanding): s is AdjustedStanding & { calculationDetails: NonNullable<AdjustedStanding['calculationDetails']> } => {
+    return isAdjusted(s) && s.calculationDetails !== undefined;
   };
 
   return (
@@ -82,11 +87,15 @@ export function LeaderboardTable({ standings, showAdjusted, maxMatches }: Leader
                       <span className={`font-semibold ${isExtrapolated ? 'text-amber-700 dark:text-amber-300' : 'text-slate-900 dark:text-slate-100'}`}>
                         {formatDecimal(standing.adjustedPoints, 1)}
                       </span>
-                      {isExtrapolated && (
+                      {isExtrapolated && showCalculationDetails && hasCalculationDetails(standing) ? (
+                        <div className="text-xs text-slate-500 dark:text-slate-400">
+                          {standing.points} + {standing.calculationDetails.missingMatches}×{standing.calculationDetails.avgOpponentPointsLost}
+                        </div>
+                      ) : isExtrapolated ? (
                         <div className="text-xs text-slate-500 dark:text-slate-400">
                           (tatsächlich: {standing.points})
                         </div>
-                      )}
+                      ) : null}
                     </div>
                   ) : (
                     <span className="font-semibold text-slate-900 dark:text-slate-100">

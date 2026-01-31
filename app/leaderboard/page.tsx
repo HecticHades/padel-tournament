@@ -199,6 +199,7 @@ function LeaderboardContent() {
               standings={displayStandings}
               showAdjusted={showAdjusted}
               maxMatches={fairnessStats.maxMatches}
+              showCalculationDetails={adjustmentMethod === 'opponent-based'}
             />
           </CardContent>
         </Card>

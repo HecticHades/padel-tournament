@@ -65,6 +65,12 @@ export interface Standing {
 export interface AdjustedStanding extends Standing {
   adjustedPoints: number;
   adjustedAverage: number;
+  // Details for opponent-based calculation (optional)
+  calculationDetails?: {
+    missingMatches: number;
+    avgOpponentPointsLost: number;
+    estimatedAdditionalPoints: number;
+  };
 }
 
 export type AdjustmentMethod = 'average' | 'opponent-based';

@@ -309,6 +309,11 @@ export function calculateOpponentBasedAdjustment(
       ...standing,
       adjustedPoints: Math.round(adjustedPoints * 10) / 10,
       adjustedAverage: Math.round(adjustedAverage * 10) / 10,
+      calculationDetails: {
+        missingMatches,
+        avgOpponentPointsLost: Math.round(avgOpponentLost * 10) / 10,
+        estimatedAdditionalPoints: Math.round(estimatedAdditionalPoints * 10) / 10,
+      },
     };
   });
 }
