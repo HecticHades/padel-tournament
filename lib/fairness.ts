@@ -502,3 +502,152 @@ export function calculatePartnerBasedAdjustment(
     };
   });
 }
+
+/**
+ * Calculate combined adjusted standings.
+ * Average of: own average, opponent-based (avg points lost), partner-based (avg points won)
+ */
+export function calculateCombinedAdjustment(
+  standings: Standing[],
+  matches: Match[],
+  pointsPerMatch: number
+): AdjustedStanding[] {
+  if (standings.length === 0) return [];
+
+  const maxMatches = Math.max(...standings.map(s => s.matchesPlayed));
+
+  if (maxMatches === 0) {
+    return standings.map(s => ({
+      ...s,
+      adjustedPoints: 0,
+      adjustedAverage: 0,
+    }));
+  }
+
+  const allSameMatches = standings.every(s => s.matchesPlayed === maxMatches);
+  if (allSameMatches) {
+    return standings.map(s => ({
+      ...s,
+      adjustedPoints: s.points,
+      adjustedAverage: s.average,
+    }));
+  }
+
+  const completedMatches = matches.filter(m => m.completed);
+
+  // Track points lost and won by each player
+  const pointsLostByPlayer = new Map<string, { total: number; matchCount: number }>();
+  const pointsWonByPlayer = new Map<string, { total: number; matchCount: number }>();
+  standings.forEach(s => {
+    pointsLostByPlayer.set(s.playerId, { total: 0, matchCount: 0 });
+    pointsWonByPlayer.set(s.playerId, { total: 0, matchCount: 0 });
+  });
+
+  // Process matches
+  completedMatches.forEach(match => {
+    const score1 = match.score1 || 0;
+    const score2 = match.score2 || 0;
+
+    match.team1.forEach(p => {
+      const lostData = pointsLostByPlayer.get(p);
+      const wonData = pointsWonByPlayer.get(p);
+      if (lostData) {
+        lostData.total += score2;
+        lostData.matchCount += 1;
+      }
+      if (wonData) {
+        wonData.total += score1;
+        wonData.matchCount += 1;
+      }
+    });
+
+    match.team2.forEach(p => {
+      const lostData = pointsLostByPlayer.get(p);
+      const wonData = pointsWonByPlayer.get(p);
+      if (lostData) {
+        lostData.total += score1;
+        lostData.matchCount += 1;
+      }
+      if (wonData) {
+        wonData.total += score2;
+        wonData.matchCount += 1;
+      }
+    });
+  });
+
+  // Calculate averages
+  const avgPointsLost = new Map<string, number>();
+  const avgPointsWon = new Map<string, number>();
+  standings.forEach(s => {
+    const lostData = pointsLostByPlayer.get(s.playerId);
+    const wonData = pointsWonByPlayer.get(s.playerId);
+    avgPointsLost.set(s.playerId, lostData && lostData.matchCount > 0 ? lostData.total / lostData.matchCount : pointsPerMatch / 2);
+    avgPointsWon.set(s.playerId, wonData && wonData.matchCount > 0 ? wonData.total / wonData.matchCount : pointsPerMatch / 2);
+  });
+
+  // Calculate adjusted standings
+  return standings.map(standing => {
+    if (standing.matchesPlayed === 0) {
+      return {
+        ...standing,
+        adjustedPoints: 0,
+        adjustedAverage: 0,
+      };
+    }
+
+    if (standing.matchesPlayed >= maxMatches) {
+      return {
+        ...standing,
+        adjustedPoints: standing.points,
+        adjustedAverage: standing.average,
+      };
+    }
+
+    const missingMatches = maxMatches - standing.matchesPlayed;
+
+    // 1. Own average
+    const ownAverage = standing.average;
+
+    // 2. Average opponent points lost (excluding self)
+    let totalOpponentLost = 0;
+    let opponentCount = 0;
+    standings.forEach(opponent => {
+      if (opponent.playerId === standing.playerId) return;
+      const lost = avgPointsLost.get(opponent.playerId) || pointsPerMatch / 2;
+      totalOpponentLost += lost;
+      opponentCount++;
+    });
+    const avgOpponentLost = opponentCount > 0 ? totalOpponentLost / opponentCount : pointsPerMatch / 2;
+
+    // 3. Average partner points won (excluding self)
+    let totalPartnerWon = 0;
+    let partnerCount = 0;
+    standings.forEach(partner => {
+      if (partner.playerId === standing.playerId) return;
+      const won = avgPointsWon.get(partner.playerId) || pointsPerMatch / 2;
+      totalPartnerWon += won;
+      partnerCount++;
+    });
+    const avgPartnerWon = partnerCount > 0 ? totalPartnerWon / partnerCount : pointsPerMatch / 2;
+
+    // Combined average of all three
+    const combinedAverage = (ownAverage + avgOpponentLost + avgPartnerWon) / 3;
+    const estimatedAdditionalPoints = missingMatches * combinedAverage;
+    const adjustedPoints = standing.points + estimatedAdditionalPoints;
+    const adjustedAvg = adjustedPoints / maxMatches;
+
+    return {
+      ...standing,
+      adjustedPoints: Math.round(adjustedPoints * 10) / 10,
+      adjustedAverage: Math.round(adjustedAvg * 10) / 10,
+      combinedCalculationDetails: {
+        missingMatches,
+        ownAverage: Math.round(ownAverage * 10) / 10,
+        avgOpponentPointsLost: Math.round(avgOpponentLost * 10) / 10,
+        avgPartnerPointsWon: Math.round(avgPartnerWon * 10) / 10,
+        combinedAverage: Math.round(combinedAverage * 10) / 10,
+        estimatedAdditionalPoints: Math.round(estimatedAdditionalPoints * 10) / 10,
+      },
+    };
+  });
+}

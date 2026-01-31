@@ -11,7 +11,7 @@ interface LeaderboardTableProps {
   showAdjusted: boolean;
   maxMatches?: number;
   showCalculationDetails?: boolean;
-  calculationType?: 'opponent-based' | 'partner-based';
+  calculationType?: 'opponent-based' | 'partner-based' | 'combined';
 }
 
 export function LeaderboardTable({ standings, showAdjusted, maxMatches, showCalculationDetails, calculationType }: LeaderboardTableProps) {
@@ -25,6 +25,10 @@ export function LeaderboardTable({ standings, showAdjusted, maxMatches, showCalc
 
   const hasPartnerDetails = (s: Standing | AdjustedStanding): s is AdjustedStanding & { partnerCalculationDetails: NonNullable<AdjustedStanding['partnerCalculationDetails']> } => {
     return isAdjusted(s) && s.partnerCalculationDetails !== undefined;
+  };
+
+  const hasCombinedDetails = (s: Standing | AdjustedStanding): s is AdjustedStanding & { combinedCalculationDetails: NonNullable<AdjustedStanding['combinedCalculationDetails']> } => {
+    return isAdjusted(s) && s.combinedCalculationDetails !== undefined;
   };
 
   return (
@@ -112,6 +116,15 @@ export function LeaderboardTable({ standings, showAdjusted, maxMatches, showCalc
                             {standing.partnerCalculationDetails.partnerBreakdown
                               .map(p => `${p.name.split(' ')[0]} ${p.avgPointsWon}`)
                               .join(', ')}
+                          </div>
+                        </div>
+                      ) : isExtrapolated && showCalculationDetails && calculationType === 'combined' && hasCombinedDetails(standing) ? (
+                        <div className="text-xs text-slate-500 dark:text-slate-400 space-y-0.5">
+                          <div>
+                            {standing.points} + Ø {standing.combinedCalculationDetails.combinedAverage}
+                          </div>
+                          <div className="text-[10px] leading-tight">
+                            Eigen {standing.combinedCalculationDetails.ownAverage}, Gegner {standing.combinedCalculationDetails.avgOpponentPointsLost}, Partner {standing.combinedCalculationDetails.avgPartnerPointsWon}
                           </div>
                         </div>
                       ) : isExtrapolated ? (

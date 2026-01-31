@@ -20,6 +20,7 @@ import {
   calculateAdjustedStandings,
   calculateOpponentBasedAdjustment,
   calculatePartnerBasedAdjustment,
+  calculateCombinedAdjustment,
   sortByAdjusted,
   calculateFairnessStats,
   getPlayersWithFewerMatches,
@@ -67,6 +68,14 @@ function LeaderboardContent() {
 
     if (adjustmentMethod === 'partner-based') {
       return calculatePartnerBasedAdjustment(
+        leaderboard,
+        tournament.matches,
+        settings.pointsPerMatch
+      );
+    }
+
+    if (adjustmentMethod === 'combined') {
+      return calculateCombinedAdjustment(
         leaderboard,
         tournament.matches,
         settings.pointsPerMatch
@@ -208,8 +217,8 @@ function LeaderboardContent() {
               standings={displayStandings}
               showAdjusted={showAdjusted}
               maxMatches={fairnessStats.maxMatches}
-              showCalculationDetails={adjustmentMethod === 'opponent-based' || adjustmentMethod === 'partner-based'}
-              calculationType={adjustmentMethod === 'opponent-based' || adjustmentMethod === 'partner-based' ? adjustmentMethod : undefined}
+              showCalculationDetails={adjustmentMethod !== 'average'}
+              calculationType={adjustmentMethod !== 'average' ? adjustmentMethod : undefined}
             />
           </CardContent>
         </Card>

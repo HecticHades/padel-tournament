@@ -108,11 +108,13 @@ export const labels = {
   // Adjustment methods
   adjustmentMethod: 'Berechnungsmethode',
   adjustmentAverage: 'Durchschnitt',
-  adjustmentOpponentBased: 'Gegner-basiert',
-  adjustmentPartnerBased: 'Partner-basiert',
+  adjustmentOpponentBased: 'Gegner',
+  adjustmentPartnerBased: 'Partner',
+  adjustmentCombined: 'Kombiniert',
   adjustmentAverageDesc: 'Hochrechnung basierend auf dem eigenen Punkteschnitt.',
   adjustmentOpponentBasedDesc: 'Schätzung basierend auf Ø Verlustpunkten der Gegner.',
   adjustmentPartnerBasedDesc: 'Schätzung basierend auf Ø Gewinnpunkten der nicht-gespielten Partner.',
+  adjustmentCombinedDesc: 'Durchschnitt aus eigenem Schnitt, Gegner- und Partner-basiert.',
 
   // Medals
   gold: 'Gold',

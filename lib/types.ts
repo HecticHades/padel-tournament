@@ -87,9 +87,18 @@ export interface AdjustedStanding extends Standing {
       avgPointsWon: number;
     }>;
   };
+  // Details for combined calculation (optional)
+  combinedCalculationDetails?: {
+    missingMatches: number;
+    ownAverage: number;
+    avgOpponentPointsLost: number;
+    avgPartnerPointsWon: number;
+    combinedAverage: number;
+    estimatedAdditionalPoints: number;
+  };
 }
 
-export type AdjustmentMethod = 'average' | 'opponent-based' | 'partner-based';
+export type AdjustmentMethod = 'average' | 'opponent-based' | 'partner-based' | 'combined';
 
 // Storage keys
 export const STORAGE_KEYS = {
