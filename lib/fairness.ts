@@ -219,10 +219,6 @@ export function calculateOpponentBasedAdjustment(
 
   const completedMatches = matches.filter(m => m.completed);
 
-  // Track which opponents each player has faced
-  const playerOpponents = new Map<string, Set<string>>();
-  standings.forEach(s => playerOpponents.set(s.playerId, new Set()));
-
   // Track points lost by each player (points the opponent scored against them)
   const pointsLostByPlayer = new Map<string, { total: number; matchCount: number }>();
   standings.forEach(s => pointsLostByPlayer.set(s.playerId, { total: 0, matchCount: 0 }));
@@ -231,14 +227,6 @@ export function calculateOpponentBasedAdjustment(
   completedMatches.forEach(match => {
     const score1 = match.score1 || 0;
     const score2 = match.score2 || 0;
-
-    // Mark opponents as faced
-    match.team1.forEach(p1 => {
-      match.team2.forEach(p2 => {
-        playerOpponents.get(p1)?.add(p2);
-        playerOpponents.get(p2)?.add(p1);
-      });
-    });
 
     // Team1 players lost score2 points (opponent scored score2 against them)
     match.team1.forEach(p => {
@@ -271,6 +259,23 @@ export function calculateOpponentBasedAdjustment(
     }
   });
 
+  // Calculate average points lost across all opponents (excluding self)
+  const getAvgOpponentPointsLost = (playerId: string): number => {
+    let totalLost = 0;
+    let opponentCount = 0;
+
+    standings.forEach(opponent => {
+      if (opponent.playerId === playerId) return;
+      const lost = avgPointsLost.get(opponent.playerId);
+      if (lost !== undefined) {
+        totalLost += lost;
+        opponentCount++;
+      }
+    });
+
+    return opponentCount > 0 ? totalLost / opponentCount : pointsPerMatch / 2;
+  };
+
   // Calculate adjusted standings
   return standings.map(standing => {
     if (standing.matchesPlayed === 0) {
@@ -289,38 +294,16 @@ export function calculateOpponentBasedAdjustment(
       };
     }
 
-    const facedOpponents = playerOpponents.get(standing.playerId) || new Set();
+    // Calculate missing matches
+    const missingMatches = maxMatches - standing.matchesPlayed;
 
-    // Find opponents this player hasn't faced
-    const unfacedOpponents: string[] = [];
-    standings.forEach(potentialOpponent => {
-      if (potentialOpponent.playerId === standing.playerId) return;
-      if (!facedOpponents.has(potentialOpponent.playerId)) {
-        unfacedOpponents.push(potentialOpponent.playerId);
-      }
-    });
-
-    // Only adjust if there are unfaced opponents
-    if (unfacedOpponents.length === 0) {
-      return {
-        ...standing,
-        adjustedPoints: standing.points,
-        adjustedAverage: standing.average,
-      };
-    }
-
-    // Estimate points: For each unfaced opponent, estimate how many points
-    // this player would score based on how many points that opponent typically loses
-    let estimatedAdditionalPoints = 0;
-    unfacedOpponents.forEach(opponentId => {
-      // How many points does this opponent typically lose per match?
-      const opponentAvgLost = avgPointsLost.get(opponentId) || pointsPerMatch / 2;
-      estimatedAdditionalPoints += opponentAvgLost;
-    });
+    // Estimate points for missing matches based on average opponent weakness
+    // (how many points opponents typically lose per match)
+    const avgOpponentLost = getAvgOpponentPointsLost(standing.playerId);
+    const estimatedAdditionalPoints = missingMatches * avgOpponentLost;
 
     const adjustedPoints = standing.points + estimatedAdditionalPoints;
-    const totalMatches = standing.matchesPlayed + unfacedOpponents.length;
-    const adjustedAverage = adjustedPoints / totalMatches;
+    const adjustedAverage = adjustedPoints / maxMatches;
 
     return {
       ...standing,
