@@ -100,15 +100,18 @@ function SetupContent() {
     <main className="min-h-screen p-4 sm:p-6 lg:p-8">
       <div className="max-w-2xl mx-auto">
         {/* Header */}
-        <div className="flex justify-between items-center mb-6">
+        <header className="flex justify-between items-start mb-6 animate-fade-in">
           <div>
             <Link
               href="/"
-              className="text-sm text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
+              className="inline-flex items-center gap-1.5 text-sm text-txt-muted hover:text-txt transition-colors mb-2"
             >
-              &larr; {labels.back}
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+              {labels.back}
             </Link>
-            <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
+            <h1 className="text-2xl sm:text-3xl font-display text-txt tracking-wide">
               {tournament?.name || labels.setup}
             </h1>
           </div>
@@ -116,15 +119,20 @@ function SetupContent() {
             <DarkModeToggle />
             <LogoutButton onLogout={() => router.push('/')} />
           </div>
-        </div>
+        </header>
 
         <div className="space-y-6">
           {/* Players section */}
-          <Card>
+          <Card className="animate-slide-up">
             <CardHeader>
-              <CardTitle>
-                {labels.players} ({players.length})
-              </CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle>
+                  {labels.players}
+                </CardTitle>
+                <Badge variant={players.length >= 4 ? 'accent' : 'default'}>
+                  {players.length} Spieler
+                </Badge>
+              </div>
             </CardHeader>
             <CardContent className="space-y-4">
               <PlayerInput
@@ -139,7 +147,8 @@ function SetupContent() {
                 onRemove={removePlayer}
               />
               {players.length < 4 && (
-                <p className="text-sm text-amber-600 dark:text-amber-400">
+                <p className="text-sm text-warning flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-warning" />
                   {labels.minPlayersError}
                 </p>
               )}
@@ -148,74 +157,86 @@ function SetupContent() {
 
           {/* Config section */}
           {settings && (
-            <ConfigPanel
-              settings={settings}
-              numPlayers={players.length}
-              onUpdate={updateSettings}
-            />
+            <div className="animate-slide-up delay-100" style={{ animationFillMode: 'backwards' }}>
+              <ConfigPanel
+                settings={settings}
+                numPlayers={players.length}
+                onUpdate={updateSettings}
+              />
+            </div>
           )}
 
           {/* Error message */}
           {error && (
-            <div className="p-3 rounded-lg bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300">
+            <div className="p-4 rounded-xl bg-danger/10 border border-danger/30 text-danger text-sm flex items-center gap-2 animate-scale-in">
+              <span className="w-2 h-2 rounded-full bg-danger" />
               {error}
             </div>
           )}
 
           {/* Start button */}
-          <Button
-            size="lg"
-            fullWidth
-            onClick={handlePreviewSchedule}
-            disabled={!canStart}
-          >
-            {labels.startTournament}
-          </Button>
+          <div className="animate-slide-up delay-200" style={{ animationFillMode: 'backwards' }}>
+            <Button
+              size="lg"
+              fullWidth
+              onClick={handlePreviewSchedule}
+              disabled={!canStart}
+              className={canStart ? 'shadow-glow' : ''}
+            >
+              {labels.startTournament}
+            </Button>
+          </div>
         </div>
 
         {/* Confirmation modal with preview of players with fewer matches */}
         {showConfirmModal && schedulePreview && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <div
-              className="absolute inset-0 bg-black/50 dark:bg-black/70"
+              className="absolute inset-0 bg-dark/80 backdrop-blur-sm"
               onClick={() => setShowConfirmModal(false)}
             />
-            <Card className="relative w-full max-w-md max-h-[90vh] overflow-y-auto">
+            <Card className="relative w-full max-w-md max-h-[90vh] overflow-y-auto animate-scale-in glow-border">
               <CardContent>
-                <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-3">
+                <h3 className="text-xl font-display text-txt tracking-wide mb-4">
                   {labels.startTournament}
                 </h3>
 
-                <div className="space-y-4 mb-4">
+                <div className="space-y-4 mb-6">
                   {/* Schedule summary */}
-                  <div className="p-3 rounded-lg bg-slate-100 dark:bg-slate-700">
-                    <p className="text-sm text-slate-700 dark:text-slate-300">
-                      <span className="font-medium">{schedulePreview.totalRounds}</span> {labels.rounds} &bull;{' '}
-                      <span className="font-medium">{schedulePreview.matches.length}</span> Spiele total
-                    </p>
+                  <div className="p-4 rounded-xl bg-dark-surface/50 border border-dark-border/50">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-accent/20 flex items-center justify-center">
+                          <span className="text-accent font-display text-lg">{schedulePreview.totalRounds}</span>
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-txt">{schedulePreview.totalRounds} {labels.rounds}</p>
+                          <p className="text-xs text-txt-muted">{schedulePreview.matches.length} Spiele total</p>
+                        </div>
+                      </div>
+                    </div>
                   </div>
 
                   {/* Warning about players with fewer matches */}
                   {schedulePreview.playersWithFewerMatches.length > 0 && (
-                    <div className="p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
-                      <p className="text-sm font-medium text-amber-800 dark:text-amber-200 mb-2">
+                    <div className="p-4 rounded-xl bg-warning/10 border border-warning/30">
+                      <p className="text-sm font-semibold text-warning mb-3">
                         Spieler mit weniger Spielen:
                       </p>
-                      <div className="flex flex-wrap gap-2 mb-2">
+                      <div className="flex flex-wrap gap-2 mb-3">
                         {schedulePreview.playersWithFewerMatches.map((player) => (
                           <Badge
                             key={player.name}
                             variant="warning"
-                            className="bg-amber-200 dark:bg-amber-800 text-amber-900 dark:text-amber-100"
                           >
                             <span className="font-semibold">{player.name}</span>
-                            <span className="ml-1 opacity-75">
-                              ({player.matches}/{player.maxMatches})
+                            <span className="ml-1.5 opacity-75">
+                              {player.matches}/{player.maxMatches}
                             </span>
                           </Badge>
                         ))}
                       </div>
-                      <p className="text-xs text-amber-700 dark:text-amber-300">
+                      <p className="text-xs text-txt-secondary leading-relaxed">
                         {labels.fewerMatchesNote}
                       </p>
                     </div>
@@ -223,8 +244,9 @@ function SetupContent() {
 
                   {/* Perfect schedule info */}
                   {schedulePreview.playersWithFewerMatches.length === 0 && (
-                    <div className="p-3 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800">
-                      <p className="text-sm text-green-700 dark:text-green-300">
+                    <div className="p-4 rounded-xl bg-success/10 border border-success/30">
+                      <p className="text-sm text-success flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-success" />
                         Alle Spieler haben gleich viele Spiele.
                       </p>
                     </div>
@@ -243,6 +265,7 @@ function SetupContent() {
                     variant="primary"
                     fullWidth
                     onClick={handleConfirmStart}
+                    className="shadow-glow-sm"
                   >
                     {labels.startTournament}
                   </Button>

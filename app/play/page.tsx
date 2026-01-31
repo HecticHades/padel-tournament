@@ -13,6 +13,7 @@ import { LogoutButton } from '@/components/auth/LogoutButton';
 import { DarkModeToggle } from '@/components/ui/DarkModeToggle';
 import { useTournament } from '@/hooks/useTournament';
 import { labels } from '@/lib/labels';
+import { cn } from '@/lib/utils';
 
 function PlayContent() {
   const router = useRouter();
@@ -113,21 +114,25 @@ function PlayContent() {
     <main className="min-h-screen p-4 sm:p-6 lg:p-8">
       <div className="max-w-2xl mx-auto">
         {/* Header */}
-        <div className="flex justify-between items-center mb-6">
+        <header className="flex justify-between items-start mb-6 animate-fade-in">
           <div>
             <Link
               href="/"
-              className="text-sm text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
+              className="inline-flex items-center gap-1.5 text-sm text-txt-muted hover:text-txt transition-colors mb-2"
             >
-              &larr; {labels.back}
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+              {labels.back}
             </Link>
-            <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
+            <h1 className="text-2xl sm:text-3xl font-display text-txt tracking-wide">
               {labels.roundOf
                 .replace('{current}', viewedRound.toString())
                 .replace('{total}', totalRounds.toString())}
             </h1>
             {viewedRound !== currentRound && (
-              <p className="text-xs text-amber-600 dark:text-amber-400">
+              <p className="text-xs text-warning mt-1 flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-warning animate-pulse" />
                 Aktuelle Runde: {currentRound}
               </p>
             )}
@@ -136,25 +141,32 @@ function PlayContent() {
             <DarkModeToggle />
             <LogoutButton onLogout={() => router.push('/')} />
           </div>
-        </div>
+        </header>
 
-        {/* Round navigation */}
+        {/* Round Navigation */}
         {totalRounds > 1 && (
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center justify-between mb-6 animate-slide-up">
             <Button
-              variant="secondary"
+              variant="ghost"
               size="sm"
               onClick={goToPreviousRound}
               disabled={viewedRound === 1}
               aria-label={labels.previousRound}
             >
-              &larr; {labels.previousRound}
+              <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+              {labels.previousRound}
             </Button>
-            <div className="flex gap-1">
+
+            {/* Round Indicators */}
+            <div className="flex gap-1.5">
               {Array.from({ length: totalRounds }, (_, i) => i + 1).map((round) => {
                 const roundMatches = allMatches.filter((m) => m.round === round);
-                const allComplete =
-                  roundMatches.length > 0 && roundMatches.every((m) => m.completed);
+                const allComplete = roundMatches.length > 0 && roundMatches.every((m) => m.completed);
+                const isViewing = round === viewedRound;
+                const isCurrent = round === currentRound;
+
                 return (
                   <button
                     key={round}
@@ -163,34 +175,36 @@ function PlayContent() {
                       setViewedRound(round);
                       setCurrentMatchIndex(0);
                     }}
-                    className={`w-3 h-3 rounded-full transition-colors ${
-                      round === viewedRound
-                        ? 'bg-emerald-500'
-                        : round === currentRound
-                          ? 'bg-primary-400 dark:bg-primary-500'
-                          : allComplete
-                            ? 'bg-slate-400 dark:bg-slate-500'
-                            : 'bg-slate-200 dark:bg-slate-700'
-                    }`}
-                    aria-label={`Runde ${round}${round === currentRound ? ' (aktuell)' : ''}${allComplete ? ' (abgeschlossen)' : ''}`}
+                    className={cn(
+                      'w-3 h-3 rounded-full transition-all duration-300',
+                      isViewing && 'w-6 bg-accent shadow-glow-sm indicator-active',
+                      !isViewing && isCurrent && 'bg-accent/60',
+                      !isViewing && !isCurrent && allComplete && 'bg-success/60',
+                      !isViewing && !isCurrent && !allComplete && 'bg-dark-surface border border-dark-border'
+                    )}
+                    aria-label={`Runde ${round}${isCurrent ? ' (aktuell)' : ''}${allComplete ? ' (abgeschlossen)' : ''}`}
                   />
                 );
               })}
             </div>
+
             <Button
-              variant="secondary"
+              variant="ghost"
               size="sm"
               onClick={goToNextRound}
               disabled={viewedRound === totalRounds}
               aria-label={labels.nextRoundNav}
             >
-              {labels.nextRoundNav} &rarr;
+              {labels.nextRoundNav}
+              <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
             </Button>
           </div>
         )}
 
-        {/* Progress */}
-        <div className="space-y-2 mb-6">
+        {/* Progress Bars */}
+        <div className="space-y-3 mb-6 animate-slide-up delay-100" style={{ animationFillMode: 'backwards' }}>
           <ProgressBar
             current={completedMatches}
             total={totalMatchesInRound}
@@ -199,13 +213,16 @@ function PlayContent() {
           <ProgressBar current={totalCompleted} total={totalMatches} label="Gesamt" />
         </div>
 
-        {/* Navigation buttons */}
-        <div className="flex gap-2 mb-6">
+        {/* Quick Nav Buttons */}
+        <div className="flex gap-2 mb-6 animate-slide-up delay-200" style={{ animationFillMode: 'backwards' }}>
           <Button
             variant="secondary"
             onClick={() => router.push('/schedule')}
             fullWidth
           >
+            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
             {labels.schedule}
           </Button>
           <Button
@@ -213,28 +230,31 @@ function PlayContent() {
             onClick={() => router.push('/leaderboard')}
             fullWidth
           >
+            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+            </svg>
             {labels.leaderboard}
           </Button>
         </div>
 
-        {/* Bye players */}
-        {viewedRoundByes.length > 0 ? (
-          <Card className="mb-6">
+        {/* Bye Players */}
+        {viewedRoundByes.length > 0 && (
+          <Card className="mb-6 animate-slide-up delay-200" style={{ animationFillMode: 'backwards' }}>
             <CardContent>
-              <div className="flex items-center gap-2 flex-wrap">
+              <div className="flex items-center gap-3 flex-wrap">
                 <ByeBadge />
-                <span className="text-sm text-slate-600 dark:text-slate-400">
+                <span className="text-sm text-txt-secondary">
                   {labels.byePlayers}:
                 </span>
-                <span className="text-sm font-medium text-slate-900 dark:text-slate-100">
+                <span className="text-sm font-medium text-txt">
                   {viewedRoundByes.map(getPlayerName).join(', ')}
                 </span>
               </div>
             </CardContent>
           </Card>
-        ) : null}
+        )}
 
-        {/* View mode toggle */}
+        {/* View Mode Toggle */}
         {viewedRoundMatches.length > 1 && (
           <div className="flex justify-end mb-4">
             <Button variant="ghost" size="sm" onClick={toggleViewMode}>
@@ -246,14 +266,19 @@ function PlayContent() {
         {/* Matches */}
         {showAll ? (
           <div className="space-y-4 mb-6">
-            {viewedRoundMatches.map((match) => (
-              <MatchScoreInput
+            {viewedRoundMatches.map((match, index) => (
+              <div
                 key={match.id}
-                match={match}
-                players={players}
-                pointsPerMatch={settings?.pointsPerMatch || 24}
-                onSubmit={(score1, score2) => handleSubmitScore(match.id, score1, score2)}
-              />
+                className="animate-slide-up"
+                style={{ animationDelay: `${index * 50}ms`, animationFillMode: 'backwards' }}
+              >
+                <MatchScoreInput
+                  match={match}
+                  players={players}
+                  pointsPerMatch={settings?.pointsPerMatch || 24}
+                  onSubmit={(score1, score2) => handleSubmitScore(match.id, score1, score2)}
+                />
+              </div>
             ))}
           </div>
         ) : (
@@ -262,41 +287,49 @@ function PlayContent() {
             {viewedRoundMatches.length > 1 && (
               <div className="flex items-center justify-between mb-4">
                 <Button
-                  variant="secondary"
+                  variant="ghost"
                   size="sm"
                   onClick={goToPreviousMatch}
                   disabled={currentMatchIndex === 0}
                   aria-label={labels.previousMatch}
                 >
-                  &larr; {labels.previousMatch}
+                  <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  </svg>
+                  {labels.previousMatch}
                 </Button>
-                <span className="text-sm font-medium text-slate-600 dark:text-slate-400">
+                <span className="text-sm font-display text-txt-secondary tracking-wide">
                   {labels.matchOf
                     .replace('{current}', (currentMatchIndex + 1).toString())
                     .replace('{total}', viewedRoundMatches.length.toString())}
                 </span>
                 <Button
-                  variant="secondary"
+                  variant="ghost"
                   size="sm"
                   onClick={goToNextMatch}
                   disabled={currentMatchIndex === viewedRoundMatches.length - 1}
                   aria-label={labels.nextMatch}
                 >
-                  {labels.nextMatch} &rarr;
+                  {labels.nextMatch}
+                  <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
                 </Button>
               </div>
             )}
 
             {/* Current match */}
             {viewedRoundMatches[currentMatchIndex] && (
-              <MatchScoreInput
-                match={viewedRoundMatches[currentMatchIndex]}
-                players={players}
-                pointsPerMatch={settings?.pointsPerMatch || 24}
-                onSubmit={(score1, score2) =>
-                  handleSubmitScore(viewedRoundMatches[currentMatchIndex].id, score1, score2)
-                }
-              />
+              <div className="animate-scale-in">
+                <MatchScoreInput
+                  match={viewedRoundMatches[currentMatchIndex]}
+                  players={players}
+                  pointsPerMatch={settings?.pointsPerMatch || 24}
+                  onSubmit={(score1, score2) =>
+                    handleSubmitScore(viewedRoundMatches[currentMatchIndex].id, score1, score2)
+                  }
+                />
+              </div>
             )}
 
             {/* Match indicators */}
@@ -307,13 +340,12 @@ function PlayContent() {
                     key={match.id}
                     type="button"
                     onClick={() => setCurrentMatchIndex(index)}
-                    className={`w-3 h-3 rounded-full transition-colors ${
-                      index === currentMatchIndex
-                        ? 'bg-emerald-500'
-                        : match.completed
-                          ? 'bg-slate-400 dark:bg-slate-500'
-                          : 'bg-slate-200 dark:bg-slate-700'
-                    }`}
+                    className={cn(
+                      'w-3 h-3 rounded-full transition-all duration-300',
+                      index === currentMatchIndex && 'w-6 bg-accent shadow-glow-sm',
+                      index !== currentMatchIndex && match.completed && 'bg-success/60',
+                      index !== currentMatchIndex && !match.completed && 'bg-dark-surface border border-dark-border'
+                    )}
                     aria-label={`Spiel ${index + 1}${match.completed ? ' (abgeschlossen)' : ''}`}
                   />
                 ))}
@@ -322,27 +354,27 @@ function PlayContent() {
           </div>
         )}
 
-        {/* Round complete / Tournament complete - only show for current round */}
-        {viewedRound === currentRound && isRoundComplete ? (
-          <div className="space-y-3">
+        {/* Round/Tournament Complete Actions */}
+        {viewedRound === currentRound && isRoundComplete && (
+          <div className="space-y-3 animate-scale-in">
             {isTournamentComplete || currentRound >= totalRounds ? (
-              <Button size="lg" fullWidth onClick={handleFinish}>
+              <Button size="lg" fullWidth onClick={handleFinish} className="shadow-glow">
                 {labels.finishTournament}
               </Button>
             ) : (
-              <Button size="lg" fullWidth onClick={handleNextRound}>
+              <Button size="lg" fullWidth onClick={handleNextRound} className="shadow-glow">
                 {labels.nextRound}
               </Button>
             )}
           </div>
-        ) : null}
+        )}
 
         {/* Pending matches info */}
-        {!isViewedRoundComplete && viewedRoundMatches.length > 0 ? (
-          <p className="text-center text-slate-500 dark:text-slate-400 text-sm">
+        {!isViewedRoundComplete && viewedRoundMatches.length > 0 && (
+          <p className="text-center text-txt-muted text-sm">
             {totalMatchesInRound - completedMatches} Spiele ausstehend
           </p>
-        ) : null}
+        )}
       </div>
     </main>
   );

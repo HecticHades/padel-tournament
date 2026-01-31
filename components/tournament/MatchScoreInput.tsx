@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import type { Match, Player } from '@/lib/types';
 import { labels } from '@/lib/labels';
+import { cn } from '@/lib/utils';
 
 interface MatchScoreInputProps {
   match: Match;
@@ -100,35 +101,51 @@ export function MatchScoreInput({
   const canEdit = isComplete && !disabled && !isEditing;
   const isInputDisabled = disabled || (isComplete && !isEditing);
 
+  // Determine winner for styling
+  const team1Wins = typeof score1 === 'number' && typeof score2 === 'number' && score1 > score2;
+  const team2Wins = typeof score1 === 'number' && typeof score2 === 'number' && score2 > score1;
+
   return (
-    <Card className={isComplete ? 'opacity-75' : ''}>
+    <Card className={cn(isComplete && !isEditing && 'opacity-80')} glow={!isComplete}>
       <CardContent>
-        {/* Court badge */}
-        <div className="flex items-center justify-between mb-4">
-          <Badge variant="default">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-5">
+          <Badge variant="primary">
             {labels.court} {match.court}
           </Badge>
           {isComplete && (
-            <Badge variant="success">{labels.matchComplete}</Badge>
+            <Badge variant="success">
+              <span className="w-1.5 h-1.5 rounded-full bg-success mr-1.5" />
+              {labels.matchComplete}
+            </Badge>
           )}
         </div>
 
-        {/* Teams and scores */}
-        <div className="space-y-4">
+        {/* Match Display */}
+        <div className="space-y-3">
           {/* Team 1 */}
-          <div className="flex items-center gap-4">
+          <div className={cn(
+            'flex items-center gap-4 p-3 rounded-xl transition-all',
+            team1Wins && isComplete ? 'bg-accent/10 border border-accent/20' : 'bg-dark-surface/50 border border-dark-border/30'
+          )}>
             <div className="flex-1">
-              <div className="text-sm text-slate-500 dark:text-slate-400">
+              <div className="text-xs text-txt-muted uppercase tracking-wider mb-1">
                 {labels.team} 1
               </div>
-              <div className="font-medium text-slate-900 dark:text-slate-100">
+              <div className={cn(
+                'font-medium',
+                team1Wins && isComplete ? 'text-accent' : 'text-txt'
+              )}>
                 {getPlayerName(match.team1[0])}
               </div>
-              <div className="font-medium text-slate-900 dark:text-slate-100">
+              <div className={cn(
+                'font-medium',
+                team1Wins && isComplete ? 'text-accent' : 'text-txt'
+              )}>
                 {getPlayerName(match.team1[1])}
               </div>
             </div>
-            <div className="w-24">
+            <div className="w-20">
               <NumberInput
                 value={score1}
                 onChange={handleScore1Change}
@@ -136,35 +153,55 @@ export function MatchScoreInput({
                 max={pointsPerMatch}
                 disabled={isInputDisabled}
                 aria-label={`Punkte ${labels.team} 1`}
+                className={cn(
+                  team1Wins && isComplete && 'border-accent/50 bg-accent/10'
+                )}
               />
             </div>
           </div>
 
-          {/* Divider */}
-          <div className="text-center text-slate-400 dark:text-slate-500 text-sm">
-            {labels.vs}
+          {/* VS Divider */}
+          <div className="flex items-center justify-center py-1">
+            <div className="flex-1 h-px bg-dark-border/30" />
+            <span className="px-4 text-sm font-display text-txt-muted tracking-widest">
+              {labels.vs}
+            </span>
+            <div className="flex-1 h-px bg-dark-border/30" />
           </div>
 
           {/* Team 2 */}
-          <div className="flex items-center gap-4">
+          <div className={cn(
+            'flex items-center gap-4 p-3 rounded-xl transition-all',
+            team2Wins && isComplete ? 'bg-accent/10 border border-accent/20' : 'bg-dark-surface/50 border border-dark-border/30'
+          )}>
             <div className="flex-1">
-              <div className="text-sm text-slate-500 dark:text-slate-400">
+              <div className="text-xs text-txt-muted uppercase tracking-wider mb-1">
                 {labels.team} 2
               </div>
-              <div className="font-medium text-slate-900 dark:text-slate-100">
+              <div className={cn(
+                'font-medium',
+                team2Wins && isComplete ? 'text-accent' : 'text-txt'
+              )}>
                 {getPlayerName(match.team2[0])}
               </div>
-              <div className="font-medium text-slate-900 dark:text-slate-100">
+              <div className={cn(
+                'font-medium',
+                team2Wins && isComplete ? 'text-accent' : 'text-txt'
+              )}>
                 {getPlayerName(match.team2[1])}
               </div>
             </div>
-            <div className="w-24">
+            <div className="w-20">
               <NumberInput
                 value={score2}
                 readOnly
                 min={0}
                 max={pointsPerMatch}
                 aria-label={`Punkte ${labels.team} 2 (automatisch berechnet)`}
+                className={cn(
+                  'cursor-not-allowed',
+                  team2Wins && isComplete && 'border-accent/50 bg-accent/10'
+                )}
               />
             </div>
           </div>
@@ -172,14 +209,15 @@ export function MatchScoreInput({
 
         {/* Error */}
         {error && (
-          <div className="mt-3 text-sm text-red-600 dark:text-red-400">
+          <div className="mt-4 text-sm text-danger flex items-center gap-2">
+            <span className="w-1.5 h-1.5 rounded-full bg-danger" />
             {error}
           </div>
         )}
 
         {/* Buttons */}
         {!disabled && (
-          <div className="mt-4 space-y-2">
+          <div className="mt-5 space-y-2">
             {/* New match or editing */}
             {(!isComplete || isEditing) && (
               <div className="flex gap-2">
@@ -196,6 +234,7 @@ export function MatchScoreInput({
                   fullWidth
                   onClick={handleSubmit}
                   disabled={typeof score1 !== 'number'}
+                  className={typeof score1 === 'number' ? 'shadow-glow-sm' : ''}
                 >
                   {isEditing ? 'Änderung speichern' : labels.submit}
                 </Button>

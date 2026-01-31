@@ -8,7 +8,9 @@ interface CardProps {
   className?: string;
   padding?: 'none' | 'sm' | 'md' | 'lg';
   hover?: boolean;
+  glow?: boolean;
   onClick?: () => void;
+  style?: React.CSSProperties;
 }
 
 export function Card({
@@ -16,26 +18,28 @@ export function Card({
   className,
   padding = 'md',
   hover = false,
+  glow = false,
   onClick,
+  style,
 }: CardProps) {
   const paddings = {
     none: '',
-    sm: 'p-3',
-    md: 'p-4',
+    sm: 'p-4',
+    md: 'p-5',
     lg: 'p-6',
   };
 
   return (
     <div
       className={cn(
-        'rounded-xl shadow-sm',
-        'bg-white dark:bg-slate-800',
-        'border border-slate-200 dark:border-slate-700',
+        'rounded-2xl glass shadow-card court-lines',
         paddings[padding],
-        hover && 'transition-shadow hover:shadow-md cursor-pointer',
+        hover && 'transition-all duration-300 hover:shadow-card-hover hover:-translate-y-0.5 cursor-pointer',
+        glow && 'glow-border',
         onClick && 'cursor-pointer',
         className
       )}
+      style={style}
       onClick={onClick}
       role={onClick ? 'button' : undefined}
       tabIndex={onClick ? 0 : undefined}
@@ -64,7 +68,7 @@ export function CardHeader({ children, className }: CardHeaderProps) {
   return (
     <div
       className={cn(
-        'pb-3 mb-3 border-b border-slate-200 dark:border-slate-700',
+        'pb-4 mb-4 border-b border-dark-border/50',
         className
       )}
     >
@@ -82,7 +86,7 @@ export function CardTitle({ children, className }: CardTitleProps) {
   return (
     <h3
       className={cn(
-        'text-lg font-semibold text-slate-900 dark:text-slate-100',
+        'text-xl font-display text-txt tracking-wide',
         className
       )}
     >
@@ -109,7 +113,7 @@ export function CardFooter({ children, className }: CardFooterProps) {
   return (
     <div
       className={cn(
-        'pt-3 mt-3 border-t border-slate-200 dark:border-slate-700',
+        'pt-4 mt-4 border-t border-dark-border/50',
         className
       )}
     >

@@ -1,6 +1,7 @@
 'use client';
 
 import { useTournamentContext } from '@/context/TournamentContext';
+import { cn } from '@/lib/utils';
 
 export function DarkModeToggle() {
   const { state, toggleDarkMode } = useTournamentContext();
@@ -8,14 +9,35 @@ export function DarkModeToggle() {
   return (
     <button
       onClick={toggleDarkMode}
-      className="p-2 rounded-lg bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 transition-colors touch-target"
+      className={cn(
+        'relative p-2.5 rounded-xl transition-all duration-300 touch-target',
+        'glass border-dark-border/50',
+        'hover:bg-dark-surface/80',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 focus-visible:ring-offset-2 focus-visible:ring-offset-dark',
+        'group'
+      )}
       aria-label={state.darkMode ? 'Hellmodus aktivieren' : 'Dunkelmodus aktivieren'}
     >
-      {state.darkMode ? (
-        <SunIcon className="w-5 h-5 text-slate-700 dark:text-slate-300" />
-      ) : (
-        <MoonIcon className="w-5 h-5 text-slate-700 dark:text-slate-300" />
-      )}
+      <div className="relative w-5 h-5">
+        {/* Sun icon */}
+        <SunIcon
+          className={cn(
+            'absolute inset-0 w-5 h-5 transition-all duration-300',
+            state.darkMode
+              ? 'opacity-100 rotate-0 text-accent'
+              : 'opacity-0 -rotate-90 text-txt-muted'
+          )}
+        />
+        {/* Moon icon */}
+        <MoonIcon
+          className={cn(
+            'absolute inset-0 w-5 h-5 transition-all duration-300',
+            state.darkMode
+              ? 'opacity-0 rotate-90 text-txt-muted'
+              : 'opacity-100 rotate-0 text-court-light'
+          )}
+        />
+      </div>
     </button>
   );
 }
@@ -26,7 +48,7 @@ function SunIcon({ className }: { className?: string }) {
       xmlns="http://www.w3.org/2000/svg"
       fill="none"
       viewBox="0 0 24 24"
-      strokeWidth={1.5}
+      strokeWidth={2}
       stroke="currentColor"
       className={className}
       aria-hidden="true"
@@ -46,7 +68,7 @@ function MoonIcon({ className }: { className?: string }) {
       xmlns="http://www.w3.org/2000/svg"
       fill="none"
       viewBox="0 0 24 24"
-      strokeWidth={1.5}
+      strokeWidth={2}
       stroke="currentColor"
       className={className}
       aria-hidden="true"

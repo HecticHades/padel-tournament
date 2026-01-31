@@ -46,7 +46,10 @@ export function PlayerInput({ onAdd, existingNames }: PlayerInputProps) {
           error={error || undefined}
         />
       </div>
-      <Button type="submit" disabled={!name.trim()}>
+      <Button type="submit" disabled={!name.trim()} className={name.trim() ? 'shadow-glow-sm' : ''}>
+        <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+        </svg>
         {labels.addPlayer}
       </Button>
     </form>

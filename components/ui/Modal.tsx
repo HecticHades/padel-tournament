@@ -67,9 +67,9 @@ export function Modal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      {/* Overlay */}
+      {/* Overlay with blur */}
       <div
-        className="absolute inset-0 bg-black/50 dark:bg-black/70"
+        className="absolute inset-0 bg-dark/80 backdrop-blur-sm"
         onClick={closeOnOverlay ? onClose : undefined}
         aria-hidden="true"
       />
@@ -81,18 +81,18 @@ export function Modal({
         aria-modal="true"
         aria-labelledby={title ? 'modal-title' : undefined}
         className={cn(
-          'relative w-full rounded-xl shadow-xl',
-          'bg-white dark:bg-slate-800',
-          'animate-in fade-in zoom-in-95 duration-200',
+          'relative w-full rounded-2xl shadow-2xl',
+          'glass glow-border',
+          'animate-scale-in',
           sizes[size]
         )}
       >
         {/* Header */}
         {title && (
-          <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-700">
+          <div className="px-6 py-4 border-b border-dark-border/50">
             <h2
               id="modal-title"
-              className="text-lg font-semibold text-slate-900 dark:text-slate-100"
+              className="text-xl font-display text-txt tracking-wide"
             >
               {title}
             </h2>
@@ -100,7 +100,7 @@ export function Modal({
         )}
 
         {/* Body */}
-        <div className="px-6 py-4">{children}</div>
+        <div className="px-6 py-5">{children}</div>
       </div>
     </div>
   );

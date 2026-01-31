@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { Button } from '@/components/ui/Button';
 import { Card, CardContent } from '@/components/ui/Card';
+import { Badge } from '@/components/ui/Badge';
 import { PinSetupModal } from '@/components/auth/PinSetupModal';
 import { PinEntryModal } from '@/components/auth/PinEntryModal';
 import { useTournament } from '@/hooks/useTournament';
@@ -23,7 +24,10 @@ export default function HomePage() {
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-slate-500 dark:text-slate-400">{labels.loading}</div>
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-12 h-12 rounded-full border-2 border-accent border-t-transparent animate-spin" />
+          <span className="text-txt-secondary font-medium">{labels.loading}</span>
+        </div>
       </div>
     );
   }
@@ -61,72 +65,89 @@ export default function HomePage() {
     <main className="min-h-screen p-4 sm:p-6 lg:p-8">
       <div className="max-w-2xl mx-auto">
         {/* Header */}
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-slate-100">
-            {labels.appTitle}
-          </h1>
+        <header className="flex justify-between items-center mb-8 animate-fade-in">
+          <div className="flex items-center gap-3">
+            {/* Logo accent bar */}
+            <div className="w-1.5 h-8 bg-gradient-to-b from-accent to-accent-dim rounded-full" />
+            <h1 className="text-2xl sm:text-3xl font-display text-txt tracking-wide">
+              {labels.appTitle}
+            </h1>
+          </div>
           <DarkModeToggle />
-        </div>
+        </header>
 
         {!hasTournament ? (
-          // No tournament - show welcome and create
+          // No tournament - show welcome
           <div className="space-y-6">
-            {/* Host/Mascot Section */}
-            <div className="flex flex-col items-center text-center py-4">
-              <div className="relative mb-4">
-                <div className="w-32 h-32 sm:w-40 sm:h-40 rounded-full overflow-hidden ring-4 ring-primary-500 ring-offset-4 ring-offset-slate-50 dark:ring-offset-slate-900 shadow-xl">
+            {/* Hero Section with Mascot */}
+            <div className="flex flex-col items-center text-center py-6 animate-slide-up">
+              {/* Mascot with glow effect */}
+              <div className="relative mb-6">
+                <div className="absolute inset-0 blur-2xl bg-accent/20 rounded-full scale-110" />
+                <div className="relative w-36 h-36 sm:w-44 sm:h-44 rounded-full overflow-hidden ring-4 ring-accent/50 ring-offset-4 ring-offset-dark shadow-glow">
                   <Image
                     src="/sandi.png"
                     alt="Sändi - Dein Turnierleiter"
-                    width={160}
-                    height={160}
+                    width={176}
+                    height={176}
                     className="object-cover w-full h-full"
                     priority
                   />
                 </div>
-                <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-primary-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg">
-                  Turnierleiter
+                {/* Floating badge */}
+                <div className="absolute -bottom-2 left-1/2 -translate-x-1/2">
+                  <Badge variant="accent" className="shadow-glow-sm whitespace-nowrap">
+                    Turnierleiter
+                  </Badge>
                 </div>
               </div>
-              <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
+
+              {/* Name with gradient */}
+              <h2 className="text-3xl font-display text-gradient tracking-wider mb-1">
                 Sändi
               </h2>
-              <p className="text-slate-500 dark:text-slate-400 text-sm">
+              <p className="text-txt-secondary">
                 heisst dich willkommen!
               </p>
             </div>
 
-            <Card>
+            {/* Welcome Card */}
+            <Card glow className="animate-slide-up delay-100" style={{ animationFillMode: 'backwards' }}>
               <CardContent>
-                <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100 mb-3">
+                <h2 className="text-2xl font-display text-txt tracking-wide mb-3">
                   {labels.welcomeTitle}
                 </h2>
-                <p className="text-slate-600 dark:text-slate-400 mb-4">
+                <p className="text-txt-secondary mb-4 leading-relaxed">
                   {labels.welcomeSubtitle}
                 </p>
-                <p className="text-slate-600 dark:text-slate-400 text-sm">
+                <p className="text-txt-muted text-sm leading-relaxed">
                   {labels.americanoExplanation}
                 </p>
               </CardContent>
             </Card>
 
-            <Button
-              size="lg"
-              fullWidth
-              onClick={() => setShowCreateModal(true)}
-            >
-              {labels.createTournament}
-            </Button>
+            {/* CTA Button */}
+            <div className="animate-slide-up delay-200" style={{ animationFillMode: 'backwards' }}>
+              <Button
+                size="lg"
+                fullWidth
+                onClick={() => setShowCreateModal(true)}
+                className="shadow-glow"
+              >
+                {labels.createTournament}
+              </Button>
+            </div>
           </div>
         ) : (
           // Existing tournament
           <div className="space-y-6">
-            {/* Sandi with tournament info */}
-            <Card>
+            {/* Tournament Card with Mascot */}
+            <Card glow className="animate-slide-up">
               <CardContent>
                 <div className="flex items-center gap-4">
+                  {/* Mini mascot */}
                   <div className="relative flex-shrink-0">
-                    <div className="w-16 h-16 rounded-full overflow-hidden ring-2 ring-primary-500 ring-offset-2 ring-offset-white dark:ring-offset-slate-800">
+                    <div className="w-16 h-16 rounded-full overflow-hidden ring-2 ring-accent/40 ring-offset-2 ring-offset-dark-card">
                       <Image
                         src="/sandi.png"
                         alt="Sändi - Turnierleiter"
@@ -135,33 +156,46 @@ export default function HomePage() {
                         className="object-cover w-full h-full"
                       />
                     </div>
+                    {/* Status indicator */}
+                    <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-accent flex items-center justify-center shadow-glow-sm">
+                      <span className="text-dark text-xs font-bold">!</span>
+                    </div>
                   </div>
+
+                  {/* Tournament info */}
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between gap-2">
-                      <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100 truncate">
+                    <div className="flex items-center justify-between gap-2 mb-1">
+                      <h2 className="text-xl font-display text-txt tracking-wide truncate">
                         {tournament?.name}
                       </h2>
-                      <span className="text-xs font-medium px-2 py-1 rounded-full bg-primary-100 dark:bg-primary-900 text-primary-700 dark:text-primary-300 flex-shrink-0">
+                      <Badge variant="accent" className="flex-shrink-0">
                         {labels.tournamentStatus[tournament?.status || 'setup']}
-                      </span>
+                      </Badge>
                     </div>
-                    <p className="text-slate-600 dark:text-slate-400 text-sm">
-                      {tournament?.players.length} {labels.players}
-                      {(tournament?.matches.length ?? 0) > 0 ? (
-                        <> • {labels.round} {tournament?.currentRound} / {tournament?.settings.rounds}</>
-                      ) : null}
-                    </p>
+                    <div className="flex items-center gap-3 text-txt-secondary text-sm">
+                      <span className="flex items-center gap-1.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-accent" />
+                        {tournament?.players.length} {labels.players}
+                      </span>
+                      {(tournament?.matches.length ?? 0) > 0 && (
+                        <span className="flex items-center gap-1.5">
+                          <span className="w-1.5 h-1.5 rounded-full bg-court-light" />
+                          {labels.round} {tournament?.currentRound} / {tournament?.settings.rounds}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
               </CardContent>
             </Card>
 
-            <div className="space-y-3">
-              <Button size="lg" fullWidth onClick={handleContinue}>
+            {/* Action Buttons */}
+            <div className="space-y-3 animate-slide-up delay-100" style={{ animationFillMode: 'backwards' }}>
+              <Button size="lg" fullWidth onClick={handleContinue} className="shadow-glow">
                 {labels.continueTournament}
               </Button>
 
-              {(tournament?.matches.length ?? 0) > 0 ? (
+              {(tournament?.matches.length ?? 0) > 0 && (
                 <Button
                   size="lg"
                   fullWidth
@@ -170,7 +204,7 @@ export default function HomePage() {
                 >
                   {labels.viewLeaderboard}
                 </Button>
-              ) : null}
+              )}
 
               <Button
                 size="lg"
@@ -202,16 +236,16 @@ export default function HomePage() {
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="reset-dialog-title">
             <button
               type="button"
-              className="absolute inset-0 bg-black/50 dark:bg-black/70 cursor-default"
+              className="absolute inset-0 bg-dark/80 backdrop-blur-sm cursor-default"
               onClick={() => setShowResetConfirm(false)}
               aria-label="Dialog schliessen"
             />
-            <Card className="relative w-full max-w-sm">
+            <Card className="relative w-full max-w-sm animate-scale-in glow-border">
               <CardContent>
-                <h3 id="reset-dialog-title" className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-2">
+                <h3 id="reset-dialog-title" className="text-xl font-display text-txt tracking-wide mb-2">
                   {labels.resetConfirmTitle}
                 </h3>
-                <p className="text-slate-600 dark:text-slate-400 mb-4">
+                <p className="text-txt-secondary mb-6">
                   {labels.resetConfirmMessage}
                 </p>
                 <div className="flex gap-3">

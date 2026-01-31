@@ -18,7 +18,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
         {label && (
           <label
             htmlFor={inputId}
-            className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1"
+            className="block text-sm font-medium text-txt-secondary mb-1.5"
           >
             {label}
           </label>
@@ -28,14 +28,14 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
           id={inputId}
           type={type}
           className={cn(
-            'w-full px-3 py-2 rounded-lg border transition-colors touch-target',
-            'bg-white dark:bg-slate-800',
-            'text-slate-900 dark:text-slate-100',
-            'placeholder-slate-400 dark:placeholder-slate-500',
+            'w-full px-4 py-3 rounded-xl border transition-all duration-200 touch-target',
+            'bg-dark-surface/50 backdrop-blur-sm',
+            'text-txt placeholder-txt-muted',
             'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-0',
             error
-              ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
-              : 'border-slate-300 dark:border-slate-600 focus:ring-primary-500 focus:border-primary-500',
+              ? 'border-danger/50 focus:ring-danger/30 focus:border-danger'
+              : 'border-dark-border focus:ring-accent/30 focus:border-accent/50',
+            'hover:border-dark-border/80',
             className
           )}
           aria-invalid={error ? 'true' : 'false'}
@@ -43,12 +43,13 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
           {...props}
         />
         {error && (
-          <p id={`${inputId}-error`} className="mt-1 text-sm text-red-600 dark:text-red-400">
+          <p id={`${inputId}-error`} className="mt-1.5 text-sm text-danger flex items-center gap-1">
+            <span className="w-1 h-1 rounded-full bg-danger" />
             {error}
           </p>
         )}
         {hint && !error && (
-          <p id={`${inputId}-hint`} className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+          <p id={`${inputId}-hint`} className="mt-1.5 text-sm text-txt-muted">
             {hint}
           </p>
         )}
@@ -59,7 +60,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
 
 Input.displayName = 'Input';
 
-// Number input with mobile keyboard support
+// Number input with mobile keyboard support - premium score input styling
 export interface NumberInputProps extends Omit<InputProps, 'type'> {
   min?: number;
   max?: number;
@@ -75,7 +76,12 @@ const NumberInput = forwardRef<HTMLInputElement, NumberInputProps>(
         pattern="[0-9]*"
         min={min}
         max={max}
-        className={cn('text-center text-lg font-semibold', className)}
+        className={cn(
+          'text-center text-2xl font-display tracking-wider',
+          'bg-dark-card/80 border-dark-border',
+          'focus:bg-dark-surface focus:border-accent/50 focus:shadow-glow-sm',
+          className
+        )}
         {...props}
       />
     );

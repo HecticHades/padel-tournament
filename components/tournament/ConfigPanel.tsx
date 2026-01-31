@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { labels } from '@/lib/labels';
 import type { TournamentSettings } from '@/lib/types';
 import { estimateSchedule } from '@/lib/scheduler';
+import { cn } from '@/lib/utils';
 
 interface ConfigPanelProps {
   settings: TournamentSettings;
@@ -49,28 +50,31 @@ export function ConfigPanel({
       <CardContent className="space-y-6">
         {/* Points per match */}
         <div>
-          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+          <label className="block text-sm font-medium text-txt-secondary mb-3">
             {labels.pointsPerMatch}
           </label>
-          <div className="flex gap-2 items-center">
+          <div className="flex gap-2 items-center flex-wrap">
             {/* Preset buttons */}
             {[16, 24, 32].map((points) => (
               <button
                 key={points}
                 onClick={() => handlePointsChange(points)}
                 disabled={disabled}
-                className={`py-2 px-3 rounded-lg border-2 transition-colors font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 ${
+                className={cn(
+                  'py-2.5 px-4 rounded-xl border-2 transition-all duration-200 font-display tracking-wide',
+                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 focus-visible:ring-offset-2 focus-visible:ring-offset-dark',
                   settings.pointsPerMatch === points
-                    ? 'border-primary-500 bg-primary-50 text-primary-700 dark:bg-primary-900 dark:text-primary-300'
-                    : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 text-slate-700 dark:text-slate-300'
-                } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    ? 'border-accent bg-accent/20 text-accent shadow-glow-sm'
+                    : 'border-dark-border bg-dark-surface/50 text-txt-secondary hover:border-dark-border/80 hover:bg-dark-surface',
+                  disabled && 'opacity-50 cursor-not-allowed'
+                )}
               >
                 {points}
               </button>
             ))}
             {/* Custom input */}
-            <div className="flex items-center gap-1">
-              <span className="text-sm text-slate-500 dark:text-slate-400">oder:</span>
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-txt-muted">oder:</span>
               <input
                 type="number"
                 inputMode="numeric"
@@ -81,11 +85,15 @@ export function ConfigPanel({
                 onChange={handleCustomPointsChange}
                 disabled={disabled}
                 aria-label="Benutzerdefinierte Punkte pro Spiel"
-                className={`w-16 py-2 px-2 text-center rounded-lg border-2 font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 ${
+                className={cn(
+                  'w-16 py-2.5 px-2 text-center rounded-xl border-2 font-display transition-all duration-200',
+                  'bg-dark-surface/50',
+                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50',
                   isCustomPoints
-                    ? 'border-primary-500 bg-primary-50 text-primary-700 dark:bg-primary-900 dark:text-primary-300'
-                    : 'border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300'
-                } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    ? 'border-accent text-accent shadow-glow-sm'
+                    : 'border-dark-border text-txt-secondary',
+                  disabled && 'opacity-50 cursor-not-allowed'
+                )}
               />
             </div>
           </div>
@@ -93,20 +101,23 @@ export function ConfigPanel({
 
         {/* Courts */}
         <div>
-          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+          <label className="block text-sm font-medium text-txt-secondary mb-3">
             {labels.courts}
           </label>
-          <div className="flex gap-2">
+          <div className="grid grid-cols-4 gap-2">
             {[1, 2, 3, 4].map((courtNum) => (
               <button
                 key={courtNum}
                 onClick={() => handleCourtsChange(courtNum)}
                 disabled={disabled}
-                className={`flex-1 py-2 px-3 rounded-lg border-2 transition-colors font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 ${
+                className={cn(
+                  'py-2.5 px-3 rounded-xl border-2 transition-all duration-200 font-display tracking-wide',
+                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 focus-visible:ring-offset-2 focus-visible:ring-offset-dark',
                   settings.courts === courtNum
-                    ? 'border-primary-500 bg-primary-50 text-primary-700 dark:bg-primary-900 dark:text-primary-300'
-                    : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 text-slate-700 dark:text-slate-300'
-                } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    ? 'border-accent bg-accent/20 text-accent shadow-glow-sm'
+                    : 'border-dark-border bg-dark-surface/50 text-txt-secondary hover:border-dark-border/80 hover:bg-dark-surface',
+                  disabled && 'opacity-50 cursor-not-allowed'
+                )}
               >
                 {courtNum}
               </button>
@@ -116,20 +127,32 @@ export function ConfigPanel({
 
         {/* Estimate */}
         {numPlayers >= 4 && (
-          <div className="p-3 rounded-lg bg-slate-100 dark:bg-slate-700 space-y-1">
-            <p className="text-sm text-slate-600 dark:text-slate-400">
-              <span className="font-medium text-slate-900 dark:text-slate-100">
-                {rounds} {labels.rounds}
-              </span>
-              {' '}&bull;{' '}
-              {matchesPerPlayer} Spiele pro Spieler
-            </p>
-            <p className="text-sm text-slate-600 dark:text-slate-400">
+          <div className={cn(
+            'p-4 rounded-xl border',
+            perfectSchedule
+              ? 'bg-success/5 border-success/30'
+              : 'bg-warning/5 border-warning/30'
+          )}>
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-10 h-10 rounded-full bg-accent/20 flex items-center justify-center">
+                <span className="text-accent font-display text-lg">{rounds}</span>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-txt">
+                  {rounds} {labels.rounds}
+                </p>
+                <p className="text-xs text-txt-muted">
+                  {matchesPerPlayer} Spiele pro Spieler
+                </p>
+              </div>
+            </div>
+            <p className="text-xs text-txt-secondary">
               Jeder spielt mit jedem anderen einmal als Partner
             </p>
             {!perfectSchedule && (
-              <p className="text-xs text-amber-600 dark:text-amber-400">
-                Hinweis: Bei {numPlayers} Spielern ist kein perfekter Spielplan möglich.
+              <p className="text-xs text-warning mt-2 flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-warning" />
+                Bei {numPlayers} Spielern ist kein perfekter Spielplan möglich.
                 Empfohlen: 4, 5, 8, 9, 12 oder 13 Spieler.
               </p>
             )}

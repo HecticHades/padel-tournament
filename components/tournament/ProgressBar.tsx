@@ -1,29 +1,45 @@
 'use client';
 
+import { cn } from '@/lib/utils';
+
 interface ProgressBarProps {
   current: number;
   total: number;
   label?: string;
+  variant?: 'default' | 'accent';
 }
 
-export function ProgressBar({ current, total, label }: ProgressBarProps) {
+export function ProgressBar({ current, total, label, variant = 'accent' }: ProgressBarProps) {
   const percentage = total > 0 ? Math.round((current / total) * 100) : 0;
+  const isComplete = current === total && total > 0;
 
   return (
     <div className="w-full">
       {label && (
-        <div className="flex justify-between items-center mb-1">
-          <span className="text-sm text-slate-600 dark:text-slate-400">
+        <div className="flex justify-between items-center mb-2">
+          <span className="text-sm text-txt-secondary font-medium">
             {label}
           </span>
-          <span className="text-sm font-medium text-slate-900 dark:text-slate-100">
-            {current} / {total}
-          </span>
+          <div className="flex items-center gap-2">
+            <span className={cn(
+              'text-sm font-display tracking-wide',
+              isComplete ? 'text-accent' : 'text-txt'
+            )}>
+              {current} / {total}
+            </span>
+            {isComplete && (
+              <span className="w-2 h-2 rounded-full bg-accent animate-pulse" />
+            )}
+          </div>
         </div>
       )}
-      <div className="h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+      <div className="h-2.5 bg-dark-surface rounded-full overflow-hidden border border-dark-border/50">
         <div
-          className="h-full bg-primary-500 dark:bg-primary-400 transition-all duration-300 rounded-full"
+          className={cn(
+            'h-full rounded-full transition-all duration-500 ease-out',
+            variant === 'accent' && 'progress-fill',
+            isComplete && 'shadow-glow-sm'
+          )}
           style={{ width: `${percentage}%` }}
         />
       </div>
