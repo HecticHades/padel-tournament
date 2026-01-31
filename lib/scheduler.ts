@@ -208,8 +208,8 @@ export function estimateSchedule(
   // Total partnerships needed
   const totalPairs = (n * (n - 1)) / 2;
 
-  // Total matches needed (2 pairs per match)
-  const totalMatches = totalPairs / 2;
+  // Total matches possible (2 pairs per match, can't have half matches)
+  const totalMatches = Math.floor(totalPairs / 2);
 
   // Each player plays (n-1) matches
   const matchesPerPlayer = n - 1;
