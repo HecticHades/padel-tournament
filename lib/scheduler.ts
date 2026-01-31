@@ -189,55 +189,6 @@ export function generateSchedule(
     }
   }
 
-  // Handle odd number of pairs: if 1 pair remains, create one more match with a repeated pair
-  const remainingPairs = allPairs.filter(pair => !isPairUsed(pair));
-  if (remainingPairs.length === 1) {
-    const lastPair = remainingPairs[0];
-
-    // Find a compatible pair to reuse (one that doesn't overlap with lastPair)
-    // Prefer pairs involving players with fewer matches
-    const playerMatchCount: Record<string, number> = {};
-    playerIds.forEach(id => { playerMatchCount[id] = 0; });
-    matches.forEach(m => {
-      [...m.team1, ...m.team2].forEach(p => { playerMatchCount[p]++; });
-    });
-
-    // Get all pairs that don't overlap with lastPair
-    const compatiblePairs = allPairs.filter(pair => !pairsOverlap(lastPair, pair));
-
-    // Sort by player match count (prefer players with fewer matches)
-    compatiblePairs.sort((a, b) => {
-      const scoreA = playerMatchCount[a[0]] + playerMatchCount[a[1]];
-      const scoreB = playerMatchCount[b[0]] + playerMatchCount[b[1]];
-      return scoreA - scoreB;
-    });
-
-    if (compatiblePairs.length > 0) {
-      const reusedPair = compatiblePairs[0];
-
-      const match: Match = {
-        id: generateId(),
-        round,
-        court: 1,
-        team1: lastPair,
-        team2: reusedPair,
-        score1: null,
-        score2: null,
-        completed: false,
-      };
-
-      matches.push(match);
-      markPairUsed(lastPair);
-
-      // Record byes for this extra round
-      const playersInMatch = new Set([...lastPair, ...reusedPair]);
-      const byePlayers = playerIds.filter(p => !playersInMatch.has(p));
-      byesByRound[round] = byePlayers;
-
-      round++;
-    }
-  }
-
   const totalRounds = round - 1;
 
   return { matches, byesByRound, totalRounds };
@@ -257,8 +208,8 @@ export function estimateSchedule(
   // Total partnerships needed
   const totalPairs = (n * (n - 1)) / 2;
 
-  // Total matches needed (2 pairs per match, round up to cover all partnerships)
-  const totalMatches = Math.ceil(totalPairs / 2);
+  // Total matches possible (2 pairs per match, can't have half matches)
+  const totalMatches = Math.floor(totalPairs / 2);
 
   // Each player plays (n-1) matches
   const matchesPerPlayer = n - 1;
