@@ -332,3 +332,173 @@ export function calculateOpponentBasedAdjustment(
     };
   });
 }
+
+/**
+ * Calculate partner-based adjusted standings.
+ * For players with fewer matches, estimate points based on average points won
+ * by partners they haven't played with yet.
+ */
+export function calculatePartnerBasedAdjustment(
+  standings: Standing[],
+  matches: Match[],
+  pointsPerMatch: number
+): AdjustedStanding[] {
+  if (standings.length === 0) return [];
+
+  const maxMatches = Math.max(...standings.map(s => s.matchesPlayed));
+
+  if (maxMatches === 0) {
+    return standings.map(s => ({
+      ...s,
+      adjustedPoints: 0,
+      adjustedAverage: 0,
+    }));
+  }
+
+  const allSameMatches = standings.every(s => s.matchesPlayed === maxMatches);
+  if (allSameMatches) {
+    return standings.map(s => ({
+      ...s,
+      adjustedPoints: s.points,
+      adjustedAverage: s.average,
+    }));
+  }
+
+  const completedMatches = matches.filter(m => m.completed);
+
+  // Track which partners each player has played with
+  const playerPartners = new Map<string, Set<string>>();
+  standings.forEach(s => playerPartners.set(s.playerId, new Set()));
+
+  // Track points won by each player
+  const pointsWonByPlayer = new Map<string, { total: number; matchCount: number }>();
+  standings.forEach(s => pointsWonByPlayer.set(s.playerId, { total: 0, matchCount: 0 }));
+
+  // Process matches
+  completedMatches.forEach(match => {
+    const score1 = match.score1 || 0;
+    const score2 = match.score2 || 0;
+
+    // Team1 partners
+    if (match.team1.length === 2) {
+      playerPartners.get(match.team1[0])?.add(match.team1[1]);
+      playerPartners.get(match.team1[1])?.add(match.team1[0]);
+    }
+
+    // Team2 partners
+    if (match.team2.length === 2) {
+      playerPartners.get(match.team2[0])?.add(match.team2[1]);
+      playerPartners.get(match.team2[1])?.add(match.team2[0]);
+    }
+
+    // Team1 players won score1 points
+    match.team1.forEach(p => {
+      const data = pointsWonByPlayer.get(p);
+      if (data) {
+        data.total += score1;
+        data.matchCount += 1;
+      }
+    });
+
+    // Team2 players won score2 points
+    match.team2.forEach(p => {
+      const data = pointsWonByPlayer.get(p);
+      if (data) {
+        data.total += score2;
+        data.matchCount += 1;
+      }
+    });
+  });
+
+  // Calculate average points won per match for each player
+  const avgPointsWon = new Map<string, number>();
+  standings.forEach(s => {
+    const data = pointsWonByPlayer.get(s.playerId);
+    if (data && data.matchCount > 0) {
+      avgPointsWon.set(s.playerId, data.total / data.matchCount);
+    } else {
+      avgPointsWon.set(s.playerId, pointsPerMatch / 2);
+    }
+  });
+
+  // Calculate adjusted standings
+  return standings.map(standing => {
+    if (standing.matchesPlayed === 0) {
+      return {
+        ...standing,
+        adjustedPoints: 0,
+        adjustedAverage: 0,
+      };
+    }
+
+    if (standing.matchesPlayed >= maxMatches) {
+      return {
+        ...standing,
+        adjustedPoints: standing.points,
+        adjustedAverage: standing.average,
+      };
+    }
+
+    // Find partners this player hasn't played with
+    const playedPartners = playerPartners.get(standing.playerId) || new Set();
+    const unplayedPartners: Array<{ name: string; avgPointsWon: number }> = [];
+
+    standings.forEach(potentialPartner => {
+      if (potentialPartner.playerId === standing.playerId) return;
+      if (playedPartners.has(potentialPartner.playerId)) return;
+
+      const won = avgPointsWon.get(potentialPartner.playerId) || pointsPerMatch / 2;
+      unplayedPartners.push({
+        name: potentialPartner.playerName,
+        avgPointsWon: Math.round(won * 10) / 10,
+      });
+    });
+
+    // Calculate missing matches
+    const missingMatches = maxMatches - standing.matchesPlayed;
+
+    // If there are unplayed partners, use their average
+    // Otherwise, fall back to overall average of all other players
+    let avgPartnerWon: number;
+    let partnerBreakdown: Array<{ name: string; avgPointsWon: number }>;
+
+    if (unplayedPartners.length > 0) {
+      avgPartnerWon = unplayedPartners.reduce((sum, p) => sum + p.avgPointsWon, 0) / unplayedPartners.length;
+      partnerBreakdown = unplayedPartners;
+    } else {
+      // All partners played - use average of all other players
+      let totalWon = 0;
+      let count = 0;
+      partnerBreakdown = [];
+
+      standings.forEach(other => {
+        if (other.playerId === standing.playerId) return;
+        const won = avgPointsWon.get(other.playerId) || pointsPerMatch / 2;
+        totalWon += won;
+        count++;
+        partnerBreakdown.push({
+          name: other.playerName,
+          avgPointsWon: Math.round(won * 10) / 10,
+        });
+      });
+
+      avgPartnerWon = count > 0 ? totalWon / count : pointsPerMatch / 2;
+    }
+
+    const estimatedAdditionalPoints = missingMatches * avgPartnerWon;
+    const adjustedPoints = standing.points + estimatedAdditionalPoints;
+    const adjustedAverage = adjustedPoints / maxMatches;
+
+    return {
+      ...standing,
+      adjustedPoints: Math.round(adjustedPoints * 10) / 10,
+      adjustedAverage: Math.round(adjustedAverage * 10) / 10,
+      partnerCalculationDetails: {
+        missingMatches,
+        avgPartnerPointsWon: Math.round(avgPartnerWon * 10) / 10,
+        estimatedAdditionalPoints: Math.round(estimatedAdditionalPoints * 10) / 10,
+        partnerBreakdown,
+      },
+    };
+  });
+}

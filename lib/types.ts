@@ -76,9 +76,20 @@ export interface AdjustedStanding extends Standing {
       avgPointsLost: number;
     }>;
   };
+  // Details for partner-based calculation (optional)
+  partnerCalculationDetails?: {
+    missingMatches: number;
+    avgPartnerPointsWon: number;
+    estimatedAdditionalPoints: number;
+    // Breakdown per unplayed partner
+    partnerBreakdown: Array<{
+      name: string;
+      avgPointsWon: number;
+    }>;
+  };
 }
 
-export type AdjustmentMethod = 'average' | 'opponent-based';
+export type AdjustmentMethod = 'average' | 'opponent-based' | 'partner-based';
 
 // Storage keys
 export const STORAGE_KEYS = {

@@ -1,0 +1,617 @@
+## Project Overview
+Build a frontend-only web application to manage a Padel Americano tournament. The app uses PIN-based access control and localStorage for all data persistence. No backend required.
+
+## Tech Stack
+- **Framework**: Next.js 14+ with App Router
+- **Styling**: Tailwind CSS
+- **State Management**: React Context + useReducer
+- **Persistence**: localStorage (all tournament data)
+- **Authentication**: Simple PIN protection
+- **Language**: TypeScript
+- **Localization**: de-CH (Swiss German formatting for numbers)
+
+## Authentication System
+
+### PIN-Based Access Control
+Simple PIN system to prevent unauthorized access. Not cryptographically secure, but sufficient for casual tournament management.
+```typescript
+interface AuthState {
+  isAuthenticated: boolean;
+  tournamentId: string | null;
+  pinHash: string | null; // Simple hash of PIN
+}
+
+// PIN requirements:
+// - 4-6 digits
+// - Set by organizer when creating tournament
+// - Stored as SHA-256 hash in localStorage
+// - Session persists until explicit logout or browser clear
+```
+
+### Auth Flow
+1. **Landing page** (`/`): 
+   - "Create Tournament" → Set new PIN → Redirect to setup
+   - "Join Tournament" → Enter existing PIN → Redirect to play/leaderboard
+2. **Session management**:
+   - Store auth state in localStorage with timestamp
+   - Auto-expire session after 24 hours of inactivity
+   - "Logout" clears session but keeps tournament data
+3. **PIN recovery**:
+   - No recovery possible (frontend-only limitation)
+   - Option to "Reset Tournament" which clears all data
+
+### Implementation
+```typescript
+// lib/auth.ts
+import { sha256 } from 'js-sha256'; // or use SubtleCrypto API
+
+const AUTH_KEY = 'padel_tournament_auth';
+const SESSION_DURATION = 24 * 60 * 60 * 1000; // 24 hours
+
+interface StoredAuth {
+  pinHash: string;
+  tournamentId: string;
+  lastActivity: number;
+}
+
+export function hashPin(pin: string): string {
+  return sha256(pin + 'padel_salt_2024');
+}
+
+export function createTournament(pin: string): string {
+  const tournamentId = crypto.randomUUID();
+  const auth: StoredAuth = {
+    pinHash: hashPin(pin),
+    tournamentId,
+    lastActivity: Date.now()
+  };
+  localStorage.setItem(AUTH_KEY, JSON.stringify(auth));
+  return tournamentId;
+}
+
+export function authenticate(pin: string): boolean {
+  const stored = localStorage.getItem(AUTH_KEY);
+  if (!stored) return false;
+  
+  const auth: StoredAuth = JSON.parse(stored);
+  
+  // Check session expiry
+  if (Date.now() - auth.lastActivity > SESSION_DURATION) {
+    return false;
+  }
+  
+  // Verify PIN
+  if (hashPin(pin) !== auth.pinHash) {
+    return false;
+  }
+  
+  // Update last activity
+  auth.lastActivity = Date.now();
+  localStorage.setItem(AUTH_KEY, JSON.stringify(auth));
+  return true;
+}
+
+export function isSessionValid(): boolean {
+  const stored = localStorage.getItem(AUTH_KEY);
+  if (!stored) return false;
+  
+  const auth: StoredAuth = JSON.parse(stored);
+  return Date.now() - auth.lastActivity < SESSION_DURATION;
+}
+
+export function logout(): void {
+  const stored = localStorage.getItem(AUTH_KEY);
+  if (stored) {
+    const auth: StoredAuth = JSON.parse(stored);
+    // Keep tournament data, just invalidate session
+    auth.lastActivity = 0;
+    localStorage.setItem(AUTH_KEY, JSON.stringify(auth));
+  }
+}
+
+export function resetAll(): void {
+  localStorage.clear();
+}
+```
+
+## localStorage Data Structure
+```typescript
+// All keys used in localStorage
+const STORAGE_KEYS = {
+  AUTH: 'padel_tournament_auth',
+  TOURNAMENT: 'padel_tournament_data',
+  SETTINGS: 'padel_tournament_settings'
+} as const;
+
+// Tournament data structure
+interface TournamentData {
+  id: string;
+  createdAt: string;
+  updatedAt: string;
+  status: 'setup' | 'in-progress' | 'completed';
+  config: {
+    pointsPerMatch: number;    // e.g., 32
+    courts: number;            // e.g., 2
+  };
+  players: Player[];
+  matches: Match[];
+  currentRound: number;
+}
+
+interface Player {
+  id: string;
+  name: string;
+  totalPoints: number;
+  matchesPlayed: number;
+  byeCount: number;
+  createdAt: string;
+}
+
+interface Match {
+  id: string;
+  round: number;
+  court: number;
+  team1: [string, string];     // Player IDs
+  team2: [string, string];     // Player IDs
+  score1: number | null;
+  score2: number | null;
+  status: 'pending' | 'in-progress' | 'completed';
+  completedAt: string | null;
+}
+
+interface Settings {
+  darkMode: boolean;
+  language: 'de-CH' | 'en';
+}
+```
+
+### Storage Helper Functions
+```typescript
+// lib/storage.ts
+export function saveTournament(data: TournamentData): void {
+  data.updatedAt = new Date().toISOString();
+  localStorage.setItem(STORAGE_KEYS.TOURNAMENT, JSON.stringify(data));
+}
+
+export function loadTournament(): TournamentData | null {
+  const stored = localStorage.getItem(STORAGE_KEYS.TOURNAMENT);
+  return stored ? JSON.parse(stored) : null;
+}
+
+export function exportTournament(): string {
+  const data = loadTournament();
+  return JSON.stringify(data, null, 2);
+}
+
+export function importTournament(json: string): boolean {
+  try {
+    const data = JSON.parse(json) as TournamentData;
+    // Validate structure
+    if (!data.id || !data.players || !data.matches) {
+      return false;
+    }
+    saveTournament(data);
+    return true;
+  } catch {
+    return false;
+  }
+}
+```
+
+## Americano Format Rules
+In traditional Americano:
+- Players rotate partners each round so everyone plays WITH every other player exactly once
+- Teams of 2 play against teams of 2 (4 players per court)
+- Points are individual (each player earns points based on games won)
+- The goal is fair rotation ensuring all possible teammate combinations occur
+
+## Core Features
+
+### 1. Landing Page (`/`)
+- **No active tournament**:
+  - "Create New Tournament" button → PIN setup modal
+  - Brief explanation of Americano format
+- **Existing tournament detected**:
+  - "Continue Tournament" → PIN entry
+  - "View Leaderboard (Read-only)" → No PIN needed
+  - "Reset & Start New" → Confirmation modal
+
+### 2. PIN Setup Modal (Create Tournament)
+- Input: 4-6 digit PIN
+- Confirm PIN (enter twice)
+- Validation feedback
+- "Create" button → Generates tournament, redirects to `/setup`
+
+### 3. PIN Entry Modal (Join/Continue)
+- Input: PIN field with numeric keyboard on mobile
+- "Enter" button
+- 3 failed attempts → 30 second cooldown
+- Success → Redirect to `/play` or last viewed page
+
+### 4. Tournament Setup Page (`/setup`) - Protected
+- Input field for player names (add/remove dynamically)
+- Minimum 4 players required
+- Configure:
+  - **Points per match**: 16, 24, 32 (default: 32)
+  - **Available courts**: 1-4 (default: 1)
+- Display calculated values:
+  - Number of rounds required
+  - Players per round / on bye
+  - Estimated duration
+- "Generate Schedule" button
+- "Start Tournament" button (locks setup, begins play)
+
+### 5. Round Generation Algorithm
+```typescript
+// lib/scheduler.ts
+
+interface ScheduleResult {
+  matches: Match[];
+  totalRounds: number;
+  byeDistribution: Map<string, number[]>; // playerId -> rounds on bye
+}
+
+export function generateSchedule(
+  players: Player[],
+  courts: number,
+  pointsPerMatch: number
+): ScheduleResult {
+  const n = players.length;
+  const playersPerRound = courts * 4;
+  
+  // Generate all unique teammate pairs
+  const allPairs: [string, string][] = [];
+  for (let i = 0; i < n; i++) {
+    for (let j = i + 1; j < n; j++) {
+      allPairs.push([players[i].id, players[j].id]);
+    }
+  }
+  
+  // Track which pairs have played together
+  const usedPairs = new Set<string>();
+  const pairKey = (a: string, b: string) => [a, b].sort().join('-');
+  
+  // Track bye counts for fair distribution
+  const byeCounts = new Map<string, number>();
+  players.forEach(p => byeCounts.set(p.id, 0));
+  
+  const matches: Match[] = [];
+  let round = 1;
+  
+  while (usedPairs.size < allPairs.length) {
+    const roundMatches: Match[] = [];
+    const playersThisRound = new Set<string>();
+    
+    // Find valid pairs for this round
+    for (let court = 0; court < courts && usedPairs.size < allPairs.length; court++) {
+      // Find two pairs that can play against each other
+      const team1 = findAvailablePair(allPairs, usedPairs, playersThisRound);
+      if (!team1) break;
+      
+      playersThisRound.add(team1[0]);
+      playersThisRound.add(team1[1]);
+      
+      const team2 = findAvailablePair(allPairs, usedPairs, playersThisRound);
+      if (!team2) {
+        // Rollback team1
+        playersThisRound.delete(team1[0]);
+        playersThisRound.delete(team1[1]);
+        break;
+      }
+      
+      playersThisRound.add(team2[0]);
+      playersThisRound.add(team2[1]);
+      
+      // Mark pairs as used
+      usedPairs.add(pairKey(team1[0], team1[1]));
+      usedPairs.add(pairKey(team2[0], team2[1]));
+      
+      roundMatches.push({
+        id: crypto.randomUUID(),
+        round,
+        court: court + 1,
+        team1,
+        team2,
+        score1: null,
+        score2: null,
+        status: 'pending',
+        completedAt: null
+      });
+    }
+    
+    // Determine bye players (not playing this round)
+    const byePlayers = players
+      .filter(p => !playersThisRound.has(p.id))
+      .map(p => p.id);
+    
+    // Update bye counts
+    byePlayers.forEach(id => {
+      byeCounts.set(id, (byeCounts.get(id) || 0) + 1);
+    });
+    
+    matches.push(...roundMatches);
+    round++;
+    
+    // Safety check to prevent infinite loops
+    if (round > n * 2) break;
+  }
+  
+  return {
+    matches,
+    totalRounds: round - 1,
+    byeDistribution: byeCounts
+  };
+}
+
+function findAvailablePair(
+  allPairs: [string, string][],
+  usedPairs: Set<string>,
+  playersInUse: Set<string>
+): [string, string] | null {
+  // Prioritize pairs where players have more byes (fairer distribution)
+  for (const pair of allPairs) {
+    const key = [pair[0], pair[1]].sort().join('-');
+    if (
+      !usedPairs.has(key) &&
+      !playersInUse.has(pair[0]) &&
+      !playersInUse.has(pair[1])
+    ) {
+      return pair;
+    }
+  }
+  return null;
+}
+```
+
+### 6. Schedule View (`/schedule`) - Protected
+- Display all rounds with:
+  - Court assignments
+  - Team compositions (Player A + Player B vs Player C + Player D)
+  - Match status (pending/in-progress/completed)
+- **Highlight players with fewer matches** (yellow background + icon)
+- Show bye players per round (greyed out with "Pausiert" label)
+- Click round to navigate to scoring
+
+### 7. Live Scoring Page (`/play`) - Protected
+- Show current round's matches
+- Per match card:
+  - Team names prominently displayed
+  - Large score inputs (touch-friendly)
+  - Auto-calculate: Team 2 score = maxPoints - Team 1 score
+  - Visual feedback on valid/invalid scores
+  - "Speichern" button per match
+- Bye players shown in sidebar/banner
+- "Nächste Runde" button when all matches complete
+- Progress indicator (Round X of Y)
+
+### 8. Leaderboard (`/leaderboard`) - Public (read-only without PIN)
+- Real-time standings sorted by:
+  1. Total points (primary)
+  2. Matches played (secondary)
+  3. Points per match average (tertiary)
+- Display per player:
+  - Rank (with medals for top 3: 🥇🥈🥉)
+  - Name
+  - Total points
+  - Matches played
+  - Avg points/match
+  - **"Weniger Spiele" badge** if below max matches
+- Toggle: "Bereinigte Punkte anzeigen" (fairness adjustment)
+- Export button (CSV download)
+
+### 9. Fairness Bootstrap System
+```typescript
+// lib/fairness.ts
+
+interface AdjustedStanding {
+  playerId: string;
+  actualPoints: number;
+  adjustedPoints: number;
+  matchesPlayed: number;
+  maxMatches: number;
+  missedMatches: number;
+  avgPointsPerMatch: number;
+}
+
+export function calculateAdjustedStandings(
+  players: Player[],
+  matches: Match[]
+): AdjustedStanding[] {
+  const maxMatches = Math.max(...players.map(p => p.matchesPlayed));
+  
+  // Calculate global average points per match
+  const totalPoints = players.reduce((sum, p) => sum + p.totalPoints, 0);
+  const totalMatches = players.reduce((sum, p) => sum + p.matchesPlayed, 0);
+  const globalAvg = totalMatches > 0 ? totalPoints / totalMatches : 0;
+  
+  return players.map(player => {
+    const missedMatches = maxMatches - player.matchesPlayed;
+    const playerAvg = player.matchesPlayed > 0 
+      ? player.totalPoints / player.matchesPlayed 
+      : 0;
+    
+    // Adjusted points: actual + (missed matches × global average)
+    const adjustedPoints = player.totalPoints + (missedMatches * globalAvg);
+    
+    return {
+      playerId: player.id,
+      actualPoints: player.totalPoints,
+      adjustedPoints: Math.round(adjustedPoints * 10) / 10,
+      matchesPlayed: player.matchesPlayed,
+      maxMatches,
+      missedMatches,
+      avgPointsPerMatch: Math.round(playerAvg * 10) / 10
+    };
+  });
+}
+```
+
+## UI Components
+```
+components/
+├── auth/
+│   ├── PinSetupModal.tsx      # Create tournament with PIN
+│   ├── PinEntryModal.tsx      # Enter PIN to access
+│   ├── AuthGuard.tsx          # HOC for protected routes
+│   └── LogoutButton.tsx
+├── tournament/
+│   ├── PlayerInput.tsx        # Add/remove players
+│   ├── ConfigPanel.tsx        # Points & courts config
+│   ├── RoundCard.tsx          # Single round display
+│   ├── MatchCard.tsx          # Match with score input
+│   ├── MatchScoreInput.tsx    # Touch-friendly number input
+│   ├── ByeBadge.tsx           # "Pausiert" indicator
+│   ├── PlayerHighlight.tsx    # Fewer matches warning
+│   └── ProgressBar.tsx        # Tournament progress
+├── leaderboard/
+│   ├── LeaderboardTable.tsx   # Sortable standings
+│   ├── PlayerRow.tsx          # Individual player row
+│   ├── AdjustmentToggle.tsx   # Fair points toggle
+│   └── ExportButton.tsx       # CSV download
+└── ui/
+    ├── Button.tsx
+    ├── Input.tsx
+    ├── Modal.tsx
+    ├── Card.tsx
+    ├── Badge.tsx
+    └── NumericKeypad.tsx      # Mobile-friendly number input
+```
+
+## Page Structure
+```
+app/
+├── layout.tsx                 # Root layout with context providers
+├── page.tsx                   # Landing: create/join tournament
+├── setup/
+│   └── page.tsx              # Tournament setup (protected)
+├── schedule/
+│   └── page.tsx              # Full schedule (protected)
+├── play/
+│   └── page.tsx              # Live scoring (protected)
+├── leaderboard/
+│   └── page.tsx              # Standings (public read-only)
+└── reset/
+    └── page.tsx              # Reset confirmation (protected)
+```
+
+## Context Structure
+```typescript
+// context/TournamentContext.tsx
+
+interface TournamentContextType {
+  // Auth state
+  isAuthenticated: boolean;
+  login: (pin: string) => boolean;
+  logout: () => void;
+  createTournament: (pin: string) => void;
+  
+  // Tournament state
+  tournament: TournamentData | null;
+  isLoading: boolean;
+  
+  // Actions
+  addPlayer: (name: string) => void;
+  removePlayer: (id: string) => void;
+  updateConfig: (config: Partial<TournamentConfig>) => void;
+  generateSchedule: () => void;
+  startTournament: () => void;
+  submitScore: (matchId: string, score1: number, score2: number) => void;
+  advanceRound: () => void;
+  resetTournament: () => void;
+  
+  // Computed
+  currentRoundMatches: Match[];
+  leaderboard: AdjustedStanding[];
+  playersWithFewerMatches: string[];
+}
+```
+
+## Swiss German Labels (de-CH)
+```typescript
+const labels = {
+  // Auth
+  createTournament: 'Neues Turnier erstellen',
+  enterPin: 'PIN eingeben',
+  pinPlaceholder: '4-6 stelliger PIN',
+  confirmPin: 'PIN bestätigen',
+  wrongPin: 'Falscher PIN',
+  logout: 'Abmelden',
+  
+  // Setup
+  playerName: 'Spielername',
+  addPlayer: 'Spieler hinzufügen',
+  pointsPerMatch: 'Punkte pro Spiel',
+  availableCourts: 'Verfügbare Plätze',
+  calculateRounds: 'Runden berechnen',
+  startTournament: 'Turnier starten',
+  
+  // Play
+  round: 'Runde',
+  court: 'Platz',
+  vs: 'gegen',
+  bye: 'Pausiert',
+  submitScore: 'Speichern',
+  nextRound: 'Nächste Runde',
+  
+  // Leaderboard
+  rank: 'Rang',
+  player: 'Spieler',
+  points: 'Punkte',
+  matches: 'Spiele',
+  average: 'Ø Punkte',
+  fewerMatches: 'Weniger Spiele',
+  adjustedPoints: 'Bereinigte Punkte',
+  showAdjusted: 'Bereinigte Punkte anzeigen',
+  exportCsv: 'Als CSV exportieren',
+  
+  // General
+  cancel: 'Abbrechen',
+  confirm: 'Bestätigen',
+  reset: 'Zurücksetzen',
+  warning: 'Achtung'
+};
+```
+
+## Additional Features
+
+### CSV Export
+```typescript
+function exportToCsv(standings: AdjustedStanding[], players: Player[]): void {
+  const headers = ['Rang', 'Name', 'Punkte', 'Spiele', 'Ø Punkte', 'Bereinigt'];
+  const rows = standings
+    .sort((a, b) => b.adjustedPoints - a.adjustedPoints)
+    .map((s, i) => {
+      const player = players.find(p => p.id === s.playerId);
+      return [
+        i + 1,
+        player?.name || '',
+        s.actualPoints,
+        s.matchesPlayed,
+        s.avgPointsPerMatch,
+        s.adjustedPoints
+      ].join(';'); // Swiss CSV uses semicolon
+    });
+  
+  const csv = [headers.join(';'), ...rows].join('\n');
+  downloadFile(csv, 'turnier-rangliste.csv', 'text/csv');
+}
+```
+
+### Dark Mode
+- Toggle in settings
+- Stored in localStorage
+- High contrast colors for outdoor use
+- Respects system preference initially
+
+## Implementation Priority
+
+1. **Auth system** (PIN setup, entry, session management)
+2. **localStorage helpers** (save, load, export)
+3. **Tournament context** (state management)
+4. **Landing page** (create/join flow)
+5. **Setup page** (players, config)
+6. **Round generation algorithm**
+7. **Schedule display**
+8. **Live scoring interface**
+9. **Leaderboard with fairness**
+10. **Polish** (dark mode, export, mobile optimization)

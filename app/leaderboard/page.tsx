@@ -19,6 +19,7 @@ import { labels } from '@/lib/labels';
 import {
   calculateAdjustedStandings,
   calculateOpponentBasedAdjustment,
+  calculatePartnerBasedAdjustment,
   sortByAdjusted,
   calculateFairnessStats,
   getPlayersWithFewerMatches,
@@ -58,6 +59,14 @@ function LeaderboardContent() {
 
     if (adjustmentMethod === 'opponent-based') {
       return calculateOpponentBasedAdjustment(
+        leaderboard,
+        tournament.matches,
+        settings.pointsPerMatch
+      );
+    }
+
+    if (adjustmentMethod === 'partner-based') {
+      return calculatePartnerBasedAdjustment(
         leaderboard,
         tournament.matches,
         settings.pointsPerMatch
@@ -199,7 +208,8 @@ function LeaderboardContent() {
               standings={displayStandings}
               showAdjusted={showAdjusted}
               maxMatches={fairnessStats.maxMatches}
-              showCalculationDetails={adjustmentMethod === 'opponent-based'}
+              showCalculationDetails={adjustmentMethod === 'opponent-based' || adjustmentMethod === 'partner-based'}
+              calculationType={adjustmentMethod === 'opponent-based' || adjustmentMethod === 'partner-based' ? adjustmentMethod : undefined}
             />
           </CardContent>
         </Card>
