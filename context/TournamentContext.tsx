@@ -234,11 +234,24 @@ export function TournamentProvider({ children }: { children: React.ReactNode }) 
       payload: { tournament, auth: authState, darkMode },
     });
 
-    // Apply dark mode class
-    if (darkMode) {
-      document.documentElement.classList.add('dark');
+    // Apply light mode class (dark is default, light class overrides)
+    if (!darkMode) {
+      document.documentElement.classList.add('light');
+    } else {
+      document.documentElement.classList.remove('light');
     }
   }, []);
+
+  // Sync dark mode class with state changes
+  useEffect(() => {
+    if (!state.isInitialized) return;
+
+    if (state.darkMode) {
+      document.documentElement.classList.remove('light');
+    } else {
+      document.documentElement.classList.add('light');
+    }
+  }, [state.darkMode, state.isInitialized]);
 
   // Persist tournament changes
   useEffect(() => {

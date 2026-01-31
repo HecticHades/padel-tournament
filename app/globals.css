@@ -35,15 +35,30 @@
 
 /* Light mode overrides */
 .light {
-  --color-bg-dark: 245, 247, 250;
+  --color-bg-dark: 248, 250, 252;
   --color-bg-card: 255, 255, 255;
-  --color-surface: 240, 242, 248;
-  --color-border: 220, 225, 235;
-  --color-text-primary: 15, 20, 35;
-  --color-text-secondary: 75, 85, 100;
-  --color-text-muted: 130, 140, 155;
-  --color-accent: 120, 170, 0;
-  --color-accent-dim: 90, 130, 0;
+  --color-surface: 241, 245, 249;
+  --color-border: 203, 213, 225;
+  --color-text-primary: 15, 23, 42;
+  --color-text-secondary: 71, 85, 105;
+  --color-text-muted: 148, 163, 184;
+  /* Darker accent for better contrast on light backgrounds */
+  --color-accent: 101, 163, 13;
+  --color-accent-dim: 77, 124, 15;
+  /* Court blue adjusted for light mode */
+  --color-court: 59, 130, 246;
+  --color-court-light: 96, 165, 250;
+}
+
+/* Light mode specific overrides */
+.light body::before {
+  opacity: 0.015;
+}
+
+.light body::after {
+  background:
+    radial-gradient(ellipse 80% 50% at 20% -10%, rgba(var(--color-court), 0.08) 0%, transparent 50%),
+    radial-gradient(ellipse 60% 40% at 80% 110%, rgba(var(--color-accent), 0.06) 0%, transparent 50%);
 }
 
 @layer base {
@@ -103,11 +118,21 @@
     border: 1px solid rgba(var(--color-border), 0.6);
   }
 
+  .light .glass {
+    background: rgba(var(--color-bg-card), 0.9);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 4px 12px rgba(0, 0, 0, 0.04);
+  }
+
   .glass-subtle {
     background: rgba(var(--color-bg-card), 0.6);
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
     border: 1px solid rgba(var(--color-border), 0.4);
+  }
+
+  .light .glass-subtle {
+    background: rgba(var(--color-bg-card), 0.75);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
   }
 
   /* Glowing accent border */
