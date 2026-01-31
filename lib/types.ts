@@ -65,17 +65,6 @@ export interface Standing {
 export interface AdjustedStanding extends Standing {
   adjustedPoints: number;
   adjustedAverage: number;
-  // Details for opponent-based calculation (optional)
-  calculationDetails?: {
-    missingMatches: number;
-    avgOpponentPointsLost: number;
-    estimatedAdditionalPoints: number;
-    // Breakdown per opponent
-    opponentBreakdown: Array<{
-      name: string;
-      avgPointsLost: number;
-    }>;
-  };
   // Details for partner-based calculation (optional)
   partnerCalculationDetails?: {
     missingMatches: number;
@@ -91,14 +80,13 @@ export interface AdjustedStanding extends Standing {
   combinedCalculationDetails?: {
     missingMatches: number;
     ownAverage: number;
-    avgOpponentPointsLost: number;
     avgPartnerPointsWon: number;
     combinedAverage: number;
     estimatedAdditionalPoints: number;
   };
 }
 
-export type AdjustmentMethod = 'average' | 'opponent-based' | 'partner-based' | 'combined';
+export type AdjustmentMethod = 'average' | 'partner-based' | 'combined';
 
 // Storage keys
 export const STORAGE_KEYS = {

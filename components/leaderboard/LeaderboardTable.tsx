@@ -12,16 +12,12 @@ interface LeaderboardTableProps {
   showAdjusted: boolean;
   maxMatches?: number;
   showCalculationDetails?: boolean;
-  calculationType?: 'opponent-based' | 'partner-based' | 'combined';
+  calculationType?: 'partner-based' | 'combined';
 }
 
 export function LeaderboardTable({ standings, showAdjusted, maxMatches, showCalculationDetails, calculationType }: LeaderboardTableProps) {
   const isAdjusted = (s: Standing | AdjustedStanding): s is AdjustedStanding => {
     return 'adjustedPoints' in s;
-  };
-
-  const hasOpponentDetails = (s: Standing | AdjustedStanding): s is AdjustedStanding & { calculationDetails: NonNullable<AdjustedStanding['calculationDetails']> } => {
-    return isAdjusted(s) && s.calculationDetails !== undefined;
   };
 
   const hasPartnerDetails = (s: Standing | AdjustedStanding): s is AdjustedStanding & { partnerCalculationDetails: NonNullable<AdjustedStanding['partnerCalculationDetails']> } => {
@@ -107,18 +103,7 @@ export function LeaderboardTable({ standings, showAdjusted, maxMatches, showCalc
                       )}>
                         {formatDecimal(standing.adjustedPoints, 1)}
                       </span>
-                      {isExtrapolated && showCalculationDetails && calculationType === 'opponent-based' && hasOpponentDetails(standing) ? (
-                        <div className="text-xs text-txt-muted space-y-0.5 mt-1">
-                          <div>
-                            {standing.points} + ØVerlustpunkte {standing.calculationDetails.avgOpponentPointsLost}
-                          </div>
-                          <div className="text-[10px] leading-tight opacity-75">
-                            {standing.calculationDetails.opponentBreakdown
-                              .map(o => `${o.name.split(' ')[0]} ${o.avgPointsLost}`)
-                              .join(', ')}
-                          </div>
-                        </div>
-                      ) : isExtrapolated && showCalculationDetails && calculationType === 'partner-based' && hasPartnerDetails(standing) ? (
+                      {isExtrapolated && showCalculationDetails && calculationType === 'partner-based' && hasPartnerDetails(standing) ? (
                         <div className="text-xs text-txt-muted space-y-0.5 mt-1">
                           <div>
                             {standing.points} + ØGewinnpunkte {standing.partnerCalculationDetails.avgPartnerPointsWon}
@@ -135,7 +120,7 @@ export function LeaderboardTable({ standings, showAdjusted, maxMatches, showCalc
                             {standing.points} + Ø {standing.combinedCalculationDetails.combinedAverage}
                           </div>
                           <div className="text-[10px] leading-tight opacity-75">
-                            Eigen {standing.combinedCalculationDetails.ownAverage}, Gegner {standing.combinedCalculationDetails.avgOpponentPointsLost}, Partner {standing.combinedCalculationDetails.avgPartnerPointsWon}
+                            Eigen {standing.combinedCalculationDetails.ownAverage}, Partner {standing.combinedCalculationDetails.avgPartnerPointsWon}
                           </div>
                         </div>
                       ) : isExtrapolated ? (

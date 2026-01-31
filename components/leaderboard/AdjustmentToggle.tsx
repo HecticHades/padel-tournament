@@ -14,7 +14,6 @@ interface AdjustmentToggleProps {
 
 const methodDescriptions: Record<AdjustmentMethod, string> = {
   'average': labels.adjustmentAverageDesc,
-  'opponent-based': labels.adjustmentOpponentBasedDesc,
   'partner-based': labels.adjustmentPartnerBasedDesc,
   'combined': labels.adjustmentCombinedDesc,
 };
@@ -62,8 +61,8 @@ export function AdjustmentToggle({
           </p>
 
           {/* Method Buttons */}
-          <div className="grid grid-cols-2 gap-2">
-            {(['average', 'opponent-based', 'partner-based', 'combined'] as AdjustmentMethod[]).map((m) => (
+          <div className="grid grid-cols-3 gap-2">
+            {(['average', 'partner-based', 'combined'] as AdjustmentMethod[]).map((m) => (
               <button
                 key={m}
                 type="button"
@@ -78,7 +77,6 @@ export function AdjustmentToggle({
               >
                 <div className="font-semibold">
                   {m === 'average' && labels.adjustmentAverage}
-                  {m === 'opponent-based' && labels.adjustmentOpponentBased}
                   {m === 'partner-based' && labels.adjustmentPartnerBased}
                   {m === 'combined' && labels.adjustmentCombined}
                 </div>

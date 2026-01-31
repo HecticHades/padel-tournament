@@ -19,7 +19,6 @@ import { useAuth } from '@/hooks/useAuth';
 import { labels } from '@/lib/labels';
 import {
   calculateAdjustedStandings,
-  calculateOpponentBasedAdjustment,
   calculatePartnerBasedAdjustment,
   calculateCombinedAdjustment,
   sortByAdjusted,
@@ -58,14 +57,6 @@ function LeaderboardContent() {
   // Calculate adjusted standings based on selected method
   const adjustedStandings = useMemo(() => {
     if (!settings || !tournament) return [];
-
-    if (adjustmentMethod === 'opponent-based') {
-      return calculateOpponentBasedAdjustment(
-        leaderboard,
-        tournament.matches,
-        settings.pointsPerMatch
-      );
-    }
 
     if (adjustmentMethod === 'partner-based') {
       return calculatePartnerBasedAdjustment(
