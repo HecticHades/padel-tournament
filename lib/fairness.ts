@@ -259,21 +259,31 @@ export function calculateOpponentBasedAdjustment(
     }
   });
 
-  // Calculate average points lost across all opponents (excluding self)
-  const getAvgOpponentPointsLost = (playerId: string): number => {
-    let totalLost = 0;
-    let opponentCount = 0;
+  // Get opponent breakdown with names and average points lost
+  const getOpponentBreakdown = (playerId: string): Array<{ name: string; avgPointsLost: number }> => {
+    const breakdown: Array<{ name: string; avgPointsLost: number }> = [];
 
     standings.forEach(opponent => {
       if (opponent.playerId === playerId) return;
       const lost = avgPointsLost.get(opponent.playerId);
       if (lost !== undefined) {
-        totalLost += lost;
-        opponentCount++;
+        breakdown.push({
+          name: opponent.playerName,
+          avgPointsLost: Math.round(lost * 10) / 10,
+        });
       }
     });
 
-    return opponentCount > 0 ? totalLost / opponentCount : pointsPerMatch / 2;
+    return breakdown;
+  };
+
+  // Calculate average points lost across all opponents (excluding self)
+  const getAvgOpponentPointsLost = (playerId: string): number => {
+    const breakdown = getOpponentBreakdown(playerId);
+    if (breakdown.length === 0) return pointsPerMatch / 2;
+
+    const totalLost = breakdown.reduce((sum, o) => sum + o.avgPointsLost, 0);
+    return totalLost / breakdown.length;
   };
 
   // Calculate adjusted standings
@@ -297,9 +307,13 @@ export function calculateOpponentBasedAdjustment(
     // Calculate missing matches
     const missingMatches = maxMatches - standing.matchesPlayed;
 
+    // Get opponent breakdown and average
+    const opponentBreakdown = getOpponentBreakdown(standing.playerId);
+    const avgOpponentLost = opponentBreakdown.length > 0
+      ? opponentBreakdown.reduce((sum, o) => sum + o.avgPointsLost, 0) / opponentBreakdown.length
+      : pointsPerMatch / 2;
+
     // Estimate points for missing matches based on average opponent weakness
-    // (how many points opponents typically lose per match)
-    const avgOpponentLost = getAvgOpponentPointsLost(standing.playerId);
     const estimatedAdditionalPoints = missingMatches * avgOpponentLost;
 
     const adjustedPoints = standing.points + estimatedAdditionalPoints;
@@ -313,6 +327,7 @@ export function calculateOpponentBasedAdjustment(
         missingMatches,
         avgOpponentPointsLost: Math.round(avgOpponentLost * 10) / 10,
         estimatedAdditionalPoints: Math.round(estimatedAdditionalPoints * 10) / 10,
+        opponentBreakdown,
       },
     };
   });

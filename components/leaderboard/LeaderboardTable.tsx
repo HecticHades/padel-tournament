@@ -88,8 +88,15 @@ export function LeaderboardTable({ standings, showAdjusted, maxMatches, showCalc
                         {formatDecimal(standing.adjustedPoints, 1)}
                       </span>
                       {isExtrapolated && showCalculationDetails && hasCalculationDetails(standing) ? (
-                        <div className="text-xs text-slate-500 dark:text-slate-400">
-                          {standing.points} + {standing.calculationDetails.missingMatches}×{standing.calculationDetails.avgOpponentPointsLost}
+                        <div className="text-xs text-slate-500 dark:text-slate-400 space-y-0.5">
+                          <div>
+                            {standing.points} + {standing.calculationDetails.missingMatches}×{standing.calculationDetails.avgOpponentPointsLost}
+                          </div>
+                          <div className="text-[10px] leading-tight">
+                            Ø Verlust: {standing.calculationDetails.opponentBreakdown
+                              .map(o => `${o.name.split(' ')[0]} ${o.avgPointsLost}`)
+                              .join(', ')}
+                          </div>
                         </div>
                       ) : isExtrapolated ? (
                         <div className="text-xs text-slate-500 dark:text-slate-400">

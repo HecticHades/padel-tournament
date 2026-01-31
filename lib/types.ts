@@ -70,6 +70,11 @@ export interface AdjustedStanding extends Standing {
     missingMatches: number;
     avgOpponentPointsLost: number;
     estimatedAdditionalPoints: number;
+    // Breakdown per opponent
+    opponentBreakdown: Array<{
+      name: string;
+      avgPointsLost: number;
+    }>;
   };
 }
 
