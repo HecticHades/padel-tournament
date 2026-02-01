@@ -57,10 +57,11 @@ export function getDarkMode(): boolean {
 
 export function setDarkMode(enabled: boolean): void {
   localStorage.setItem(STORAGE_KEYS.DARK_MODE, String(enabled));
+  // CSS uses .light class for light mode overrides (dark is default)
   if (enabled) {
-    document.documentElement.classList.add('dark');
+    document.documentElement.classList.remove('light');
   } else {
-    document.documentElement.classList.remove('dark');
+    document.documentElement.classList.add('light');
   }
 }
 
